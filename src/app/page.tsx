@@ -14,6 +14,7 @@ export default function Home() {
   const [cameraSupported, setCameraSupported] = useState(false);
   const [isInLiffClient, setIsInLiffClient] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [isLoadingAudio, setIsLoadingAudio] = useState(false); // 音频加载状态
   const [autoSpeakEnabled, setAutoSpeakEnabled] = useState(true); // 默认开启自动朗读
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -194,8 +195,9 @@ export default function Home() {
       
       // AI解析完成后，如果开启自动朗读且有有效内容，则自动开始朗读
       if (autoSpeakEnabled && analyzedText && analyzedText !== '内容を認識できませんでした') {
-        // 延迟一下让用户看到结果，然后自动开始朗读
+        // 延迟一下让用户看到结果，然后显示音频加载提示并开始朗读
         setTimeout(() => {
+          setIsLoadingAudio(true);
           speakText(analyzedText);
         }, 1000);
       }
@@ -215,6 +217,10 @@ export default function Home() {
     const textContent = textToSpeak || recognizedText;
     if (!textContent || textContent === '内容を認識できませんでした' || isSpeaking) return;
     
+    // 如果还没有显示加载状态，则显示
+    if (!isLoadingAudio) {
+      setIsLoadingAudio(true);
+    }
     setIsSpeaking(true);
     
     try {
@@ -251,10 +257,12 @@ export default function Home() {
         audioRef.current.src = audioUrl;
         audioRef.current.onended = () => {
           setIsSpeaking(false);
+          setIsLoadingAudio(false);
           URL.revokeObjectURL(audioUrl);
         };
         audioRef.current.onerror = () => {
           setIsSpeaking(false);
+          setIsLoadingAudio(false);
           URL.revokeObjectURL(audioUrl);
           console.error('Audio playback failed');
           // 降级到浏览器TTS
@@ -263,11 +271,14 @@ export default function Home() {
         
         await audioRef.current.play();
         console.log('Google TTS audio started playing');
+        // 音频开始播放后，隐藏加载提示
+        setIsLoadingAudio(false);
       }
       
     } catch (err) {
       console.error('Google TTS error:', err);
       setIsSpeaking(false);
+      setIsLoadingAudio(false);
       // 降级到浏览器TTS
       fallbackToWebTTS(textContent);
     }
@@ -284,9 +295,18 @@ export default function Home() {
       utterance.pitch = 1.1; // 稍微提高音调让声音更友好
       utterance.volume = 0.9;
       
-      utterance.onstart = () => setIsSpeaking(true);
-      utterance.onend = () => setIsSpeaking(false);
-      utterance.onerror = () => setIsSpeaking(false);
+      utterance.onstart = () => {
+        setIsSpeaking(true);
+        setIsLoadingAudio(false); // 浏览器TTS开始时也要隐藏加载提示
+      };
+      utterance.onend = () => {
+        setIsSpeaking(false);
+        setIsLoadingAudio(false);
+      };
+      utterance.onerror = () => {
+        setIsSpeaking(false);
+        setIsLoadingAudio(false);
+      };
       
       speechSynthesis.speak(utterance);
     }
@@ -302,6 +322,7 @@ export default function Home() {
       speechSynthesis.cancel();
     }
     setIsSpeaking(false);
+    setIsLoadingAudio(false);
   };
 
   // 切换自动朗读开关
@@ -309,8 +330,8 @@ export default function Home() {
     const newState = !autoSpeakEnabled;
     setAutoSpeakEnabled(newState);
     
-    // 如果关闭自动朗读且当前正在播放，则停止播放
-    if (!newState && isSpeaking) {
+    // 如果关闭自动朗读且当前正在播放或加载，则停止播放
+    if (!newState && (isSpeaking || isLoadingAudio)) {
       stopSpeaking();
     }
   };
@@ -322,6 +343,11 @@ export default function Home() {
     setRecognizedText('');
     setError('');
     setIsAnalyzing(false);
+    setIsSpeaking(false);
+    setIsLoadingAudio(false);
+    
+    // 停止任何正在播放的音频
+    stopSpeaking();
     
     // 清理文件输入
     if (fileInputRef.current) {
@@ -329,23 +355,19 @@ export default function Home() {
     }
   };
 
-  // 主拍照按钮处理（用户直接交互）
+  // 主拍照按钮处理（只用于相机拍照）
   const handleMainCameraButton = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
-    console.log('User clicked main camera button - direct interaction');
+    console.log('User clicked main camera button - camera only');
     
-    // 在LIFF环境中，优先使用文件选择器
-    if (isInLiffClient) {
-      console.log('In LIFF client, using file upload');
-      handleFileUpload();
-    } else if (cameraSupported) {
+    if (cameraSupported) {
       console.log('Camera supported, starting camera');
       startCamera();
     } else {
-      console.log('Camera not supported, using file upload');
-      handleFileUpload();
+      console.log('Camera not supported, showing error');
+      setError('カメラ機能がサポートされていません。下の青いボタンからファイルを選択してください。');
     }
-  }, [isInLiffClient, cameraSupported, startCamera, handleFileUpload]);
+  }, [cameraSupported, startCamera]);
 
   if (isLoading) {
     return (
@@ -360,18 +382,15 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
-      <div className="max-w-md mx-auto min-h-screen flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 overflow-x-hidden">
+      <div className="w-full max-w-md mx-auto min-h-screen flex flex-col">
         
         {!isCapturing && !capturedImage && (
           // 主页状态 - 修复滚动问题
           <div className="flex-1">
             {/* 头部 */}
             <div className="text-center pt-12 pb-8">
-              <h1 className="text-3xl font-bold text-gray-800 mb-2">写真眼鏡</h1>
-              <p className="text-gray-600 text-lg">
-                小さな文字も大きく見える！
-              </p>
+              <h1 className="text-4xl font-black text-gray-800 mb-4" style={{fontFamily: '"Comic Sans MS", "Hiragino Maru Gothic Pro", "Yu Gothic UI", cursive, sans-serif'}}>写真眼鏡</h1>
               {isInLiffClient && (
                 <p className="text-sm text-blue-600 mt-2">
                   📱 LINE環境で実行中
@@ -387,10 +406,10 @@ export default function Home() {
             )}
 
             {/* 主要拍照区域 */}
-            <div className="flex items-center justify-center px-4 py-8">
-              <div className="text-center">
+            <div className="flex items-center justify-center px-4 py-8 flex-1">
+              <div className="text-center w-full">
                 {/* 卡通放大镜拍照按钮 */}
-                <div className="relative mx-auto w-80 h-80 mb-12">
+                <div className="relative mx-auto w-72 h-72 mb-8">
                   <button 
                     onClick={handleMainCameraButton}
                     className="block w-full h-full"
@@ -430,59 +449,48 @@ export default function Home() {
 
                 {/* 说明文字 */}
                 <div className="space-y-4">
-                  <p className="text-xl font-bold text-gray-700">
-                    📸 写真を撮影してください
+                  <p className="text-xl font-bold text-gray-700 mb-3 animate-bounce">
+                    <span className="inline-block animate-pulse bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
+                      📸 タップして撮影
+                    </span>
                   </p>
-                  <p className="text-gray-600 leading-relaxed">
-                    {isInLiffClient ? (
-                      <>画像ファイルを選択して<br/>アップロードしてください</>
-                    ) : cameraSupported ? (
-                      <>カメラで撮影するか<br/>ファイルを選択してください</>
-                    ) : (
-                      <>ファイルを選択して<br/>画像をアップロードしてください</>
-                    )}
+                  <p className="text-gray-600 leading-relaxed text-lg">
+                    写真をアップロードする場合は<br/>
+                    下方の青いボタンをクリック<br/>
+                    <span className="text-2xl">⬇️</span>
                   </p>
                 </div>
 
-                {/* 备用按钮 */}
-                <div className="mt-8 space-y-4">
+                {/* 文件上传按钮 */}
+                <div className="mt-8">
                   <button
                     onClick={handleFileUpload}
-                    className="w-full bg-blue-500 text-white py-3 px-6 rounded-full font-bold hover:bg-blue-600 transition-colors"
+                    className="w-full bg-blue-500 text-white py-4 px-6 rounded-full font-bold hover:bg-blue-600 transition-colors text-lg shadow-lg"
                     type="button"
                   >
                     📁 ファイルから選択
                   </button>
-                  {!isInLiffClient && cameraSupported && (
-                    <button
-                      onClick={startCamera}
-                      className="w-full bg-green-500 text-white py-3 px-6 rounded-full font-bold hover:bg-green-600 transition-colors"
-                      type="button"
-                    >
-                      📷 カメラを使用
-                    </button>
-                  )}
                 </div>
               </div>
             </div>
 
             {/* 底部功能链接 */}
-            <div className="px-4 pb-8">
-              <div className="bg-white rounded-2xl p-6 shadow-lg">
+            <div className="px-4 pb-4">
+              <div className="bg-white rounded-2xl p-4 shadow-lg">
                 <h3 className="text-lg font-bold text-gray-800 mb-4 text-center">
                   📖 このアプリについて
                 </h3>
-                <div className="space-y-3 text-sm text-gray-600">
+                <div className="space-y-3 text-base text-gray-700">
                   <div className="flex items-center space-x-3">
-                    <span className="text-2xl">🔍</span>
-                    <span>小さな文字を大きく読み取り</span>
+                    <span className="text-xl">🔍</span>
+                    <span>見えにくい文字を読み上げます</span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <span className="text-2xl">🤖</span>
-                    <span>AI による画像の詳細説明</span>
+                    <span className="text-xl">🤖</span>
+                    <span>見た内容を詳しく説明します</span>
                   </div>
                   <div className="flex items-center space-x-3">
-                    <span className="text-2xl">🔊</span>
+                    <span className="text-xl">🔊</span>
                     <span>音声での読み上げ機能</span>
                   </div>
                 </div>
@@ -490,8 +498,8 @@ export default function Home() {
             </div>
 
             {/* 法律文档链接 */}
-            <div className="px-4 pb-6">
-              <div className="flex justify-center space-x-6 text-sm">
+            <div className="px-4 pb-4">
+              <div className="flex justify-center space-x-6 text-xs">
                 <Link 
                   href="/privacy" 
                   className="text-blue-500 hover:underline"
@@ -569,29 +577,29 @@ export default function Home() {
                   autoSpeakEnabled 
                     ? 'bg-gradient-to-r from-green-400 to-blue-400 text-white' 
                     : 'bg-gradient-to-r from-gray-400 to-gray-500 text-white'
-                } ${isSpeaking ? 'animate-pulse' : ''}`}
+                } ${(isSpeaking || isLoadingAudio) ? 'animate-pulse' : ''}`}
                 type="button"
                 title={autoSpeakEnabled ? '音声オン（クリックでオフ）' : '音声オフ（クリックでオン）'}
               >
-                {autoSpeakEnabled ? (isSpeaking ? '🔊' : '🔊') : '🔇'}
+                {autoSpeakEnabled ? (isSpeaking || isLoadingAudio ? '🔊' : '🔊') : '🔇'}
               </button>
             </div>
 
             {/* 可滚动的主内容区域 */}
             <div className="flex-1 overflow-y-auto px-4 py-4">
-              {/* 拍摄的照片缩略图 */}
-              <div className="mb-6">
-                <div className="relative rounded-xl overflow-hidden shadow-lg bg-white p-2">
-                  <img
-                    src={capturedImage}
-                    alt="撮影した写真"
-                    className="w-full h-32 object-cover rounded-lg"
-                  />
-                  <div className="absolute top-3 right-3 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
-                    ✅ 完了
-                  </div>
-                </div>
+                        {/* 拍摄的照片缩略图 */}
+          <div className="mb-6">
+            <div className="relative rounded-xl overflow-hidden shadow-lg bg-white p-2">
+              <img
+                src={capturedImage}
+                alt="撮影した写真"
+                className="w-full h-48 object-cover rounded-lg"
+              />
+              <div className="absolute top-3 right-3 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                ✅ 完了
               </div>
+            </div>
+          </div>
 
               {/* AI分析状态 */}
               {isAnalyzing && (
@@ -610,6 +618,22 @@ export default function Home() {
                       <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce delay-100"></div>
                       <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce delay-200"></div>
                     </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 音频加载提示 */}
+              {isLoadingAudio && (
+                <div className="mb-6">
+                  <div className="bg-orange-50 border-2 border-orange-200 rounded-2xl p-6 text-center">
+                    <div className="relative mb-4">
+                      <div className="animate-spin w-16 h-16 border-4 border-orange-400 border-t-transparent rounded-full mx-auto"></div>
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl">
+                        🔊
+                      </div>
+                    </div>
+                    <p className="text-orange-700 font-bold text-xl mb-2">音声を準備中</p>
+                    <p className="text-orange-600 text-lg">しばらくお待ちください...</p>
                   </div>
                 </div>
               )}
@@ -683,7 +707,7 @@ export default function Home() {
                     type="button"
                   >
                     <span className="text-2xl">🔊</span>
-                    <span>重聽</span>
+                    <span>再聞</span>
                   </button>
                 )}
 
@@ -702,7 +726,7 @@ export default function Home() {
                     type="button"
                   >
                     <span className="text-2xl">📤</span>
-                    <span>分享</span>
+                    <span>シェア</span>
                   </button>
                 )}
 
@@ -713,7 +737,7 @@ export default function Home() {
                   type="button"
                 >
                   <span className="text-2xl">📷</span>
-                  <span>重拍</span>
+                  <span>再撮影</span>
                 </button>
               </div>
             </div>

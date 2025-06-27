@@ -43,7 +43,7 @@ export async function POST(request: NextRequest) {
           },
           audioConfig: {
             audioEncoding: 'MP3',
-            speakingRate: 0.9, // 稍慢一点，适合高龄用户
+            speakingRate: 1.1, // 稍快一点，更自然
             pitch: 0.0,
             volumeGainDb: 0.0
           }

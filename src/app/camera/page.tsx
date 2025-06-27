@@ -221,7 +221,7 @@ export default function CameraPage() {
                 <img
                   src={capturedImage}
                   alt="撮影した写真"
-                  className="w-full h-64 object-cover"
+                  className="w-full h-80 object-cover"
                 />
                 <div className="absolute bottom-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
                   ✅ 撮影完了
