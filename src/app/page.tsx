@@ -12,6 +12,7 @@ export default function Home() {
   const [recognizedText, setRecognizedText] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [cameraSupported, setCameraSupported] = useState(false);
+  const [isInLiffClient, setIsInLiffClient] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -21,6 +22,11 @@ export default function Home() {
     const initializeApp = async () => {
       try {
         await initializeLiff();
+        
+        // 检查是否在LIFF客户端中
+        if (typeof window !== 'undefined' && (window as any).liff) {
+          setIsInLiffClient((window as any).liff.isInClient());
+        }
         
         // 检查相机支持
         if (typeof navigator !== 'undefined' && 
@@ -40,23 +46,28 @@ export default function Home() {
     initializeApp();
   }, []);
 
-  // 启动相机（Web API方式）
+  // 启动相机（必须由用户交互触发）
   const startCamera = useCallback(async () => {
     try {
       setError('');
-      console.log('Attempting to start camera...');
+      console.log('User triggered camera access...');
       
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('このブラウザはカメラ機能をサポートしていません');
       }
 
-      const stream = await navigator.mediaDevices.getUserMedia({
+      // 在LIFF环境中，需要更严格的权限处理
+      const constraints = {
         video: {
           facingMode: 'environment', // 后置摄像头
-          width: { ideal: 1280 },
-          height: { ideal: 720 }
-        }
-      });
+          width: { ideal: 1280, max: 1920 },
+          height: { ideal: 720, max: 1080 }
+        },
+        audio: false // 明确禁用音频
+      };
+
+      console.log('Requesting camera permission...');
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
       console.log('Camera stream obtained successfully');
       
@@ -67,9 +78,25 @@ export default function Home() {
       }
     } catch (err) {
       console.error('Camera access error:', err);
-      setError('カメラへのアクセスに失敗しました。代わりにファイル選択をご利用ください。');
-      // 自动打开文件选择器作为备用方案
-      handleFileUpload();
+      let errorMsg = 'カメラへのアクセスに失敗しました。';
+      
+      if (err instanceof Error) {
+        if (err.name === 'NotAllowedError') {
+          errorMsg = 'カメラの使用が許可されていません。ブラウザの設定を確認してください。';
+        } else if (err.name === 'NotFoundError') {
+          errorMsg = 'カメラが見つかりません。';
+        } else if (err.name === 'NotReadableError') {
+          errorMsg = 'カメラが他のアプリケーションによって使用されています。';
+        } else if (err.name === 'OverconstrainedError') {
+          errorMsg = 'カメラの設定に問題があります。';
+        }
+      }
+      
+      setError(errorMsg + ' 代わりにファイル選択をご利用ください。');
+      // 如果相机失败，自动打开文件选择器
+      setTimeout(() => {
+        handleFileUpload();
+      }, 1000);
     }
   }, []);
 
@@ -180,14 +207,18 @@ export default function Home() {
     setError('');
   };
 
-  // 主拍照按钮处理
-  const handleMainCameraButton = () => {
-    if (cameraSupported) {
-      startCamera();
-    } else {
+  // 主拍照按钮处理（用户直接交互）
+  const handleMainCameraButton = useCallback((event: React.MouseEvent) => {
+    event.preventDefault();
+    console.log('User clicked camera button - direct interaction');
+    
+    // 在LIFF环境中，优先使用文件选择器
+    if (isInLiffClient || !cameraSupported) {
       handleFileUpload();
+    } else {
+      startCamera();
     }
-  };
+  }, [isInLiffClient, cameraSupported, startCamera, handleFileUpload]);
 
   if (isLoading) {
     return (
@@ -214,6 +245,11 @@ export default function Home() {
               <p className="text-gray-600 text-lg">
                 小さな文字も大きく見える！
               </p>
+              {isInLiffClient && (
+                <p className="text-sm text-blue-600 mt-2">
+                  📱 LINE環境で実行中
+                </p>
+              )}
             </div>
 
             {/* 错误提示 */}
@@ -228,7 +264,11 @@ export default function Home() {
               <div className="text-center">
                 {/* 卡通放大镜拍照按钮 */}
                 <div className="relative mx-auto w-80 h-80 mb-12">
-                  <button onClick={handleMainCameraButton} className="block w-full h-full">
+                  <button 
+                    onClick={handleMainCameraButton}
+                    className="block w-full h-full"
+                    type="button"
+                  >
                     {/* 主圆形按钮 */}
                     <div className="absolute inset-0 bg-gradient-to-br from-red-400 to-red-500 rounded-full shadow-2xl transform hover:scale-105 transition-transform duration-200 cursor-pointer">
                       <div className="absolute inset-6 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center">
@@ -253,7 +293,9 @@ export default function Home() {
                     📸 写真を撮影してください
                   </p>
                   <p className="text-gray-600 leading-relaxed">
-                    {cameraSupported ? (
+                    {isInLiffClient ? (
+                      <>画像ファイルを選択して<br/>アップロードしてください</>
+                    ) : cameraSupported ? (
                       <>カメラで撮影するか<br/>ファイルを選択してください</>
                     ) : (
                       <>ファイルを選択して<br/>画像をアップロードしてください</>
@@ -263,12 +305,20 @@ export default function Home() {
 
                 {/* 备用按钮 */}
                 <div className="mt-8 space-y-4">
-                  {cameraSupported && (
+                  <button
+                    onClick={handleFileUpload}
+                    className="w-full bg-blue-500 text-white py-3 px-6 rounded-full font-bold hover:bg-blue-600 transition-colors"
+                    type="button"
+                  >
+                    📁 ファイルから選択
+                  </button>
+                  {!isInLiffClient && cameraSupported && (
                     <button
-                      onClick={handleFileUpload}
-                      className="w-full bg-blue-500 text-white py-3 px-6 rounded-full font-bold hover:bg-blue-600 transition-colors"
+                      onClick={startCamera}
+                      className="w-full bg-green-500 text-white py-3 px-6 rounded-full font-bold hover:bg-green-600 transition-colors"
+                      type="button"
                     >
-                      📁 ファイルから選択
+                      📷 カメラを使用
                     </button>
                   )}
                 </div>
@@ -328,6 +378,7 @@ export default function Home() {
                   ref={videoRef}
                   autoPlay
                   playsInline
+                  muted
                   className="w-full h-full object-cover"
                 />
                 
@@ -346,6 +397,7 @@ export default function Home() {
               <button
                 onClick={stopCamera}
                 className="bg-gray-500 text-white px-6 py-3 rounded-full font-bold hover:bg-gray-600 transition-colors"
+                type="button"
               >
                 ❌ キャンセル
               </button>
@@ -353,6 +405,7 @@ export default function Home() {
               <button
                 onClick={capturePhoto}
                 className="bg-gradient-to-r from-red-500 to-pink-500 text-white px-8 py-4 rounded-full text-xl font-bold shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200"
+                type="button"
               >
                 📸 撮影
               </button>
@@ -400,6 +453,7 @@ export default function Home() {
                   <button
                     onClick={speakText}
                     className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 mb-4"
+                    type="button"
                   >
                     <span>🔊</span>
                     <span>音声で読み上げ</span>
@@ -421,6 +475,7 @@ export default function Home() {
               <button
                 onClick={retakePhoto}
                 className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-200"
+                type="button"
               >
                 📷 もう一度撮影
               </button>
