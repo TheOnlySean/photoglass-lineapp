@@ -14,7 +14,14 @@ declare module '@line/liff' {
     logout(): void;
     getProfile(): Promise<Profile>;
     closeWindow(): void;
-    shareTargetPicker(messages: Array<{ type: string; text?: string; originalContentUrl?: string; previewImageUrl?: string }>): Promise<void>;
+    shareTargetPicker(
+      messages: Array<{
+        type: string;
+        text?: string;
+        originalContentUrl?: string;
+        previewImageUrl?: string;
+      }>
+    ): Promise<void>;
     openWindow(params: { url: string; external?: boolean }): void;
   }
 

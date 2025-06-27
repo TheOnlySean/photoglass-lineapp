@@ -237,11 +237,19 @@ export default function Home() {
         </div>
 
         <div className="space-y-4">
+          <Link
+            href="/camera"
+            className="w-full bg-gradient-to-r from-red-500 to-pink-500 text-white py-4 px-4 rounded-lg font-medium hover:bg-red-600 transition-colors flex items-center justify-center space-x-2 text-xl"
+          >
+            <span>📷</span>
+            <span>写真を撮って文字を読み取り</span>
+          </Link>
+          
           <button
             onClick={handleManualProfileTest}
             className="w-full bg-blue-500 text-white py-3 px-4 rounded-lg font-medium hover:bg-blue-600 transition-colors"
           >
-            🧪 手动测试Profile获取
+            🧪 プロフィール取得テスト
           </button>
           
           <button

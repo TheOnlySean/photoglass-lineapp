@@ -3,7 +3,10 @@ import axios from 'axios';
 const LINE_API_BASE_URL = 'https://api.line.me/v2';
 
 export class LineApiError extends Error {
-  constructor(message: string, public statusCode?: number) {
+  constructor(
+    message: string,
+    public statusCode?: number
+  ) {
     super(message);
     this.name = 'LineApiError';
   }
@@ -12,7 +15,7 @@ export class LineApiError extends Error {
 // LINE APIクライアントの設定
 const createLineApiClient = () => {
   const channelSecret = process.env.CHANNEL_SECRET;
-  
+
   if (!channelSecret) {
     throw new LineApiError('Channel Secret is required for server-side operations');
   }
@@ -20,7 +23,7 @@ const createLineApiClient = () => {
   return axios.create({
     baseURL: LINE_API_BASE_URL,
     headers: {
-      'Authorization': `Bearer ${channelSecret}`,
+      Authorization: `Bearer ${channelSecret}`,
       'Content-Type': 'application/json',
     },
     timeout: 10000,
@@ -62,10 +65,7 @@ export const sendLineMessage = async (userId: string, message: string) => {
   } catch (error) {
     console.error('Failed to send LINE message:', error);
     if (axios.isAxiosError(error)) {
-      throw new LineApiError(
-        `Failed to send message: ${error.message}`,
-        error.response?.status
-      );
+      throw new LineApiError(`Failed to send message: ${error.message}`, error.response?.status);
     }
     throw new LineApiError('Failed to send message');
   }
