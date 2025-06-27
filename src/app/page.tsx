@@ -93,15 +93,12 @@ export default function Home() {
       }
       
       setError(errorMsg + ' 代わりにファイル選択をご利用ください。');
-      // 如果相机失败，自动打开文件选择器
-      setTimeout(() => {
-        handleFileUpload();
-      }, 1000);
     }
   }, []);
 
   // 文件上传方式（备用方案）
   const handleFileUpload = useCallback(() => {
+    console.log('User clicked file upload button');
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
@@ -115,7 +112,7 @@ export default function Home() {
       reader.onload = (e) => {
         const imageDataUrl = e.target?.result as string;
         setCapturedImage(imageDataUrl);
-        analyzeImage(imageDataUrl);
+        // 不自动开始AI分析，等待用户点击按钮
       };
       reader.readAsDataURL(file);
     }
@@ -154,14 +151,19 @@ export default function Home() {
     // 停止相机
     stopCamera();
     
-    // 自动开始AI分析
-    analyzeImage(imageDataUrl);
+    // 不自动开始AI分析，等待用户点击按钮
   }, [stopCamera]);
 
   // AI文字识别
   const analyzeImage = async (imageDataUrl: string) => {
-    setIsAnalyzing(true);
+    // 清理之前的状态，确保每次都是新的分析
+    setRecognizedText('');
     setError('');
+    setIsAnalyzing(true);
+    
+    // 生成请求唯一标识，防止重复请求
+    const requestId = Date.now().toString();
+    console.log(`Starting AI analysis - Request ID: ${requestId}`);
     
     try {
       const response = await fetch('/api/analyze-image', {
@@ -171,18 +173,26 @@ export default function Home() {
         },
         body: JSON.stringify({
           image: imageDataUrl,
+          requestId: requestId, // 添加请求ID
         }),
       });
 
       if (!response.ok) {
-        throw new Error('AI分析に失敗しました');
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.error || 'AI分析に失敗しました');
       }
 
       const result = await response.json();
+      console.log(`AI analysis completed - Request ID: ${requestId}`, result);
+      
+      // 确保这是最新的请求结果
       setRecognizedText(result.text || '内容を認識できませんでした');
+      
     } catch (err) {
-      setError('AI分析中にエラーが発生しました。もう一度お試しください。');
-      console.error('AI analysis error:', err);
+      console.error(`AI analysis error - Request ID: ${requestId}:`, err);
+      const errorMessage = err instanceof Error ? err.message : 'AI分析中にエラーが発生しました。もう一度お試しください。';
+      setError(errorMessage);
+      setRecognizedText(''); // 确保错误时清空之前的结果
     } finally {
       setIsAnalyzing(false);
     }
@@ -200,23 +210,35 @@ export default function Home() {
     }
   };
 
-  // 重新拍照
+  // 重新拍照 - 完全重置所有状态
   const retakePhoto = () => {
+    console.log('Retaking photo - clearing all states');
     setCapturedImage(null);
     setRecognizedText('');
     setError('');
+    setIsAnalyzing(false);
+    
+    // 清理文件输入
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
   };
 
   // 主拍照按钮处理（用户直接交互）
   const handleMainCameraButton = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
-    console.log('User clicked camera button - direct interaction');
+    console.log('User clicked main camera button - direct interaction');
     
     // 在LIFF环境中，优先使用文件选择器
-    if (isInLiffClient || !cameraSupported) {
+    if (isInLiffClient) {
+      console.log('In LIFF client, using file upload');
       handleFileUpload();
-    } else {
+    } else if (cameraSupported) {
+      console.log('Camera supported, starting camera');
       startCamera();
+    } else {
+      console.log('Camera not supported, using file upload');
+      handleFileUpload();
     }
   }, [isInLiffClient, cameraSupported, startCamera, handleFileUpload]);
 
@@ -415,70 +437,131 @@ export default function Home() {
 
         {capturedImage && (
           // 结果显示状态
-          <div className="flex-1 flex flex-col p-4 space-y-6 overflow-y-auto">
+          <div className="flex-1 flex flex-col">
+            {/* 头部标题 */}
+            <div className="text-center pt-8 pb-4">
+              <h2 className="text-2xl font-bold text-gray-800">📸 撮影完了</h2>
+              <p className="text-gray-600 mt-2">写真を確認してください</p>
+            </div>
+
             {/* 拍摄的照片 */}
-            <div className="relative rounded-2xl overflow-hidden shadow-2xl">
-              <img
-                src={capturedImage}
-                alt="撮影した写真"
-                className="w-full h-64 object-cover"
-              />
-              <div className="absolute bottom-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold">
-                ✅ 撮影完了
+            <div className="px-4 mb-6">
+              <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-white p-2">
+                <img
+                  src={capturedImage}
+                  alt="撮影した写真"
+                  className="w-full h-80 object-cover rounded-xl"
+                />
+                <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
+                  ✅ 撮影完了
+                </div>
               </div>
             </div>
 
             {/* AI分析状态 */}
             {isAnalyzing && (
-              <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 text-center">
-                <div className="animate-spin w-12 h-12 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                <p className="text-blue-700 font-bold text-lg">🤖 AI分析中...</p>
-                <p className="text-blue-600 text-sm mt-2">内容を読み取っています</p>
+              <div className="px-4 mb-6">
+                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-8 text-center">
+                  <div className="relative">
+                    <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
+                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl">
+                      🤖
+                    </div>
+                  </div>
+                  <p className="text-blue-700 font-bold text-xl mb-2">AI解析中...</p>
+                  <p className="text-blue-600">内容を読み取っています</p>
+                  <div className="mt-4 flex justify-center space-x-1">
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-100"></div>
+                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-200"></div>
+                  </div>
+                </div>
               </div>
             )}
 
             {/* 识别结果 */}
             {recognizedText && !isAnalyzing && (
-              <div className="bg-green-50 border border-green-200 rounded-2xl p-6">
-                <h3 className="text-green-800 font-bold text-lg mb-4 flex items-center">
-                  🔍 認識結果
-                </h3>
-                <div className="bg-white rounded-xl p-4 border-2 border-green-200 mb-4">
-                  <p className="text-gray-800 text-lg leading-relaxed whitespace-pre-wrap">
-                    {recognizedText}
-                  </p>
+              <div className="px-4 mb-6 flex-1 overflow-y-auto">
+                <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-2xl p-6">
+                  <h3 className="text-green-800 font-bold text-xl mb-4 flex items-center justify-center">
+                    <span className="text-2xl mr-2">🔍</span>
+                    AI解析結果
+                  </h3>
+                  <div className="bg-white rounded-xl p-4 border-2 border-green-200 mb-6 shadow-inner">
+                    <p className="text-gray-800 text-lg leading-relaxed whitespace-pre-wrap">
+                      {recognizedText}
+                    </p>
+                  </div>
+                  
+                  {recognizedText !== '内容を認識できませんでした' && (
+                    <button
+                      onClick={speakText}
+                      className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-3"
+                      type="button"
+                    >
+                      <span className="text-2xl">🔊</span>
+                      <span>音声で読み上げ</span>
+                    </button>
+                  )}
                 </div>
-                
-                {recognizedText !== '内容を認識できませんでした' && (
-                  <button
-                    onClick={speakText}
-                    className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-200 flex items-center justify-center space-x-2 mb-4"
-                    type="button"
-                  >
-                    <span>🔊</span>
-                    <span>音声で読み上げ</span>
-                  </button>
-                )}
               </div>
             )}
 
             {/* 错误显示 */}
             {error && (
-              <div className="bg-red-50 border border-red-200 rounded-2xl p-6">
-                <p className="text-red-700 font-bold">❌ エラー</p>
-                <p className="text-red-600 text-sm mt-2">{error}</p>
+              <div className="px-4 mb-6">
+                <div className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-2xl p-6 text-center">
+                  <div className="text-4xl mb-3">❌</div>
+                  <p className="text-red-700 font-bold text-lg mb-2">エラーが発生しました</p>
+                  <p className="text-red-600">{error}</p>
+                </div>
               </div>
             )}
 
-            {/* 操作按钮 */}
-            <div className="flex space-x-4 pb-4">
-              <button
-                onClick={retakePhoto}
-                className="flex-1 bg-gradient-to-r from-purple-500 to-pink-500 text-white py-3 rounded-xl font-bold hover:shadow-lg transition-all duration-200"
-                type="button"
-              >
-                📷 もう一度撮影
-              </button>
+            {/* 底部操作按钮 */}
+            <div className="px-4 pb-8">
+              <div className="space-y-4">
+                {/* 如果还没有进行AI分析，显示AI解读按钮 */}
+                {!recognizedText && !isAnalyzing && !error && (
+                  <button
+                    onClick={() => analyzeImage(capturedImage)}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-2xl font-bold text-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-3"
+                    type="button"
+                  >
+                    <span className="text-2xl">🤖</span>
+                    <span>AI解読開始</span>
+                  </button>
+                )}
+
+                {/* 重拍按钮 */}
+                <button
+                  onClick={retakePhoto}
+                  className="w-full bg-gradient-to-r from-gray-500 to-gray-600 text-white py-4 rounded-2xl font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-3"
+                  type="button"
+                >
+                  <span className="text-2xl">📷</span>
+                  <span>もう一度撮影</span>
+                </button>
+
+                {/* 如果有结果，添加分享功能按钮 */}
+                {recognizedText && !isAnalyzing && recognizedText !== '内容を認識できませんでした' && (
+                  <button
+                    onClick={() => {
+                      if (navigator.share) {
+                        navigator.share({
+                          title: '写真眼鏡 - AI解析結果',
+                          text: recognizedText
+                        });
+                      }
+                    }}
+                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-3 rounded-xl font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
+                    type="button"
+                  >
+                    <span className="text-xl">📤</span>
+                    <span>結果を共有</span>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
         )}

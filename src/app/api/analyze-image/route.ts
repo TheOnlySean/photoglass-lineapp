@@ -8,9 +8,13 @@ const openai = new OpenAI({
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
-    const { image, prompt } = body;
+    const { image, requestId, prompt } = body;
+
+    // 日志记录请求
+    console.log(`[${requestId || 'unknown'}] Starting image analysis`);
 
     if (!image) {
+      console.log(`[${requestId || 'unknown'}] Error: No image data provided`);
       return NextResponse.json(
         { error: '画像データが提供されていません' },
         { status: 400 }
@@ -18,114 +22,124 @@ export async function POST(request: NextRequest) {
     }
 
     if (!process.env.OPENAI_API_KEY) {
+      console.log(`[${requestId || 'unknown'}] Error: No OpenAI API key`);
       return NextResponse.json(
         { error: 'OpenAI API キーが設定されていません' },
         { status: 500 }
       );
     }
 
-    // OpenAI Vision API を呼び出し
+    // 重新设计的system prompt - 专注于总结和简洁
+    const systemPrompt = `あなたは高齢者向け「写真眼鏡」アプリのAIアシスタントです。画像を分析して、簡潔でわかりやすい説明を提供してください。
+
+【重要な指示】
+- 文字を逐字朗読せず、内容を要約して説明してください
+- 高齢者にとって重要な情報を優先してください
+- 3-4文程度の短い説明にまとめてください
+- 専門用語は避け、日常的な言葉を使ってください
+
+【文字がある場合】
+- 文書の種類（契約書、薬の説明書、手紙など）を判断
+- 主要な内容を要約して説明
+- 重要なポイント（金額、日付、注意事項など）を強調
+
+【文字がない場合】
+- 写っているものを簡潔に説明
+- 色、形、状況を含めて描写
+- 必要に応じて簡単な背景知識を追加
+
+【出力形式】
+- 最大150文字程度
+- 親しみやすく丁寧な口調
+- 箇条書きではなく自然な文章で`;
+
+    // 简化的user prompt
+    const userPrompt = prompt || `この画像の内容を高齢者向けに要約して説明してください。文字がある場合は内容を要約し、文字がない場合は写っているものを説明してください。`;
+
+    console.log(`[${requestId || 'unknown'}] Calling OpenAI API`);
+
+    // OpenAI Vision API を呼び出し（最適化版）
     const response = await openai.chat.completions.create({
-      model: "gpt-4o-mini", // Vision対応モデル
+      model: "gpt-4o-mini", // 高速なminiモデル
       messages: [
         {
           role: "system",
-          content: `あなたは高齢者と視覚障害者向けの「写真眼鏡」アプリのAIアシスタントです。撮影された画像を分析して、以下の2つの状況に応じて適切に対応してください。
-
-【状況1：画像に文字がある場合】
-- 文字を正確に読み取り、高齢者が理解しやすい簡単な日本語で内容を説明してください
-- 専門用語や難しい表現は、わかりやすい言葉に言い換えてください
-- 文書の種類（薬の説明書、手紙、本、新聞など）を判断し、重要なポイントを整理して伝えてください
-- 文字が小さくて読みにくい場合でも、できる限り正確に読み取ってください
-
-【状況2：画像に文字がない、または文字が主体でない場合】
-- 画像の内容を詳しく、わかりやすく描写してください
-- 写っているものの名前、色、形、位置関係などを具体的に説明してください
-- 発散的思考で背景知識を提供してください：
-
-＊絵画の場合：作者、制作年代、作品の意味、技法、歴史的背景など
-＊本の表紙の場合：著者、内容の概要、ジャンル、評価、関連作品など  
-＊商品の場合：用途、特徴、使い方、注意点など
-＊風景の場合：場所の特定、季節、時間帯、文化的意義など
-＊人物の場合：服装、表情、状況、時代背景など
-＊建物の場合：建築様式、歴史、用途、特徴など
-
-【共通の注意事項】
-- 常に高齢者・視覚障害者の立場に立って、親切で丁寧な説明を心がけてください
-- 専門用語は避け、日常的でわかりやすい言葉を使ってください
-- 情報が不確実な場合は「〜のようです」「〜と思われます」という表現を使ってください
-- 相手の安全や健康に関わる情報（薬、食品、危険物など）は特に慎重に扱ってください`
+          content: systemPrompt
         },
         {
           role: "user",
           content: [
             {
               type: "text",
-              text: prompt || `この画像を分析して、適切な支援を提供してください。
-
-【分析手順】
-1. まず画像に文字が含まれているかどうかを判断してください
-2. 文字がある場合は、文字認識と内容理解の支援を行ってください
-3. 文字がない場合は、画像の詳細な説明と背景知識の提供を行ってください
-
-【文字がある場合の対応】
-- すべての文字を正確に読み取ってください
-- 内容を高齢者にわかりやすく説明してください
-- 重要なポイントを整理して伝えてください
-- 必要に応じて、専門用語を簡単な言葉で説明してください
-
-【文字がない場合の対応】
-- 画像に写っているものを詳しく説明してください
-- 可能であれば、写っているものの背景知識や関連情報を提供してください
-- 視覚障害者が画像の内容を理解できるように、具体的で分かりやすい説明をしてください
-
-【重要】
-- どちらの場合も、高齢者や視覚障害者の方が理解しやすい、親切で丁寧な説明を心がけてください
-- 安全に関わる情報は特に注意深く扱ってください`
+              text: userPrompt
             },
             {
               type: "image_url",
               image_url: {
                 url: image,
-                detail: "high" // 高解像度で分析
+                detail: "low" // 速度優先
               }
             }
           ]
         }
       ],
-      max_tokens: 1500, // より長いテキストに対応
-      temperature: 0.1, // 一貫性を重視
+      max_tokens: 400, // さらに削減して簡潔な回答に
+      temperature: 0.1
+    }, {
+      // タイムアウト設定
+      timeout: 25000 // 25秒タイムアウト
     });
 
-    const recognizedText = response.choices[0]?.message?.content || '文字が検出されませんでした';
+    const recognizedText = response.choices[0]?.message?.content || '内容を認識できませんでした';
+
+    console.log(`[${requestId || 'unknown'}] Analysis completed successfully`);
 
     return NextResponse.json({
       text: recognizedText,
-      success: true
+      success: true,
+      requestId: requestId,
+      model: "gpt-4o-mini",
+      timestamp: new Date().toISOString()
     });
 
   } catch (error) {
-    console.error('OpenAI API エラー:', error);
+    const requestId = 'unknown'; // エラー時はunknownとして処理
+    console.error(`[${requestId}] OpenAI API エラー:`, error);
     
     if (error instanceof Error) {
-      // API制限やその他のエラーを適切に処理
-      if (error.message.includes('rate_limit')) {
+      // タイムアウトエラー
+      if (error.message.includes('timeout') || error.message.includes('TIMEOUT')) {
+        console.log(`[${requestId}] Timeout error`);
         return NextResponse.json(
-          { error: 'API使用制限に達しました。しばらく待ってからもう一度お試しください。' },
+          { error: '分析がタイムアウトしました。画像サイズを小さくして再試行してください。', requestId },
+          { status: 408 }
+        );
+      }
+      
+      // API制限エラー
+      if (error.message.includes('rate_limit')) {
+        console.log(`[${requestId}] Rate limit error`);
+        return NextResponse.json(
+          { error: 'API使用制限に達しました。しばらく待ってからもう一度お試しください。', requestId },
           { status: 429 }
         );
       }
       
+      // クォータエラー
       if (error.message.includes('insufficient_quota')) {
+        console.log(`[${requestId}] Quota error`);
         return NextResponse.json(
-          { error: 'API使用量が上限に達しました。' },
+          { error: 'API使用量が上限に達しました。', requestId },
           { status: 402 }
         );
       }
+
+      // その他のエラー
+      console.log(`[${requestId}] Other error: ${error.message}`);
     }
 
     return NextResponse.json(
-      { error: 'AI分析中にエラーが発生しました。もう一度お試しください。' },
+      { error: 'AI分析中にエラーが発生しました。もう一度お試しください。', requestId },
       { status: 500 }
     );
   }
