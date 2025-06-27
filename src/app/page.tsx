@@ -11,14 +11,23 @@ export default function Home() {
   const [capturedImage, setCapturedImage] = useState<string | null>(null);
   const [recognizedText, setRecognizedText] = useState<string>('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [cameraSupported, setCameraSupported] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
   useEffect(() => {
     const initializeApp = async () => {
       try {
         await initializeLiff();
+        
+        // 检查相机支持
+        if (typeof navigator !== 'undefined' && 
+            navigator.mediaDevices && 
+            typeof navigator.mediaDevices.getUserMedia === 'function') {
+          setCameraSupported(true);
+        }
       } catch (err) {
         console.error('LIFF initialization error:', err);
         const errorMessage = err instanceof Error ? err.message : 'Unknown error';
@@ -31,10 +40,16 @@ export default function Home() {
     initializeApp();
   }, []);
 
-  // 启动相机
+  // 启动相机（Web API方式）
   const startCamera = useCallback(async () => {
     try {
       setError('');
+      console.log('Attempting to start camera...');
+      
+      if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
+        throw new Error('このブラウザはカメラ機能をサポートしていません');
+      }
+
       const stream = await navigator.mediaDevices.getUserMedia({
         video: {
           facingMode: 'environment', // 后置摄像头
@@ -43,14 +58,39 @@ export default function Home() {
         }
       });
       
+      console.log('Camera stream obtained successfully');
+      
       if (videoRef.current) {
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setIsCapturing(true);
       }
     } catch (err) {
-      setError('カメラへのアクセスに失敗しました。ブラウザの設定でカメラの使用を許可してください。');
       console.error('Camera access error:', err);
+      setError('カメラへのアクセスに失敗しました。代わりにファイル選択をご利用ください。');
+      // 自动打开文件选择器作为备用方案
+      handleFileUpload();
+    }
+  }, []);
+
+  // 文件上传方式（备用方案）
+  const handleFileUpload = useCallback(() => {
+    if (fileInputRef.current) {
+      fileInputRef.current.click();
+    }
+  }, []);
+
+  // 处理文件选择
+  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const imageDataUrl = e.target?.result as string;
+        setCapturedImage(imageDataUrl);
+        analyzeImage(imageDataUrl);
+      };
+      reader.readAsDataURL(file);
     }
   }, []);
 
@@ -121,7 +161,7 @@ export default function Home() {
     }
   };
 
-  // 音声読み上げ
+  // 音声读み上げ
   const speakText = () => {
     if (!recognizedText || recognizedText === '内容を認識できませんでした') return;
     
@@ -138,6 +178,15 @@ export default function Home() {
     setCapturedImage(null);
     setRecognizedText('');
     setError('');
+  };
+
+  // 主拍照按钮处理
+  const handleMainCameraButton = () => {
+    if (cameraSupported) {
+      startCamera();
+    } else {
+      handleFileUpload();
+    }
   };
 
   if (isLoading) {
@@ -179,7 +228,7 @@ export default function Home() {
               <div className="text-center">
                 {/* 卡通放大镜拍照按钮 */}
                 <div className="relative mx-auto w-80 h-80 mb-12">
-                  <button onClick={startCamera} className="block w-full h-full">
+                  <button onClick={handleMainCameraButton} className="block w-full h-full">
                     {/* 主圆形按钮 */}
                     <div className="absolute inset-0 bg-gradient-to-br from-red-400 to-red-500 rounded-full shadow-2xl transform hover:scale-105 transition-transform duration-200 cursor-pointer">
                       <div className="absolute inset-6 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center">
@@ -204,9 +253,24 @@ export default function Home() {
                     📸 写真を撮影してください
                   </p>
                   <p className="text-gray-600 leading-relaxed">
-                    文字の読み取りや<br/>
-                    画像の説明を行います
+                    {cameraSupported ? (
+                      <>カメラで撮影するか<br/>ファイルを選択してください</>
+                    ) : (
+                      <>ファイルを選択して<br/>画像をアップロードしてください</>
+                    )}
                   </p>
+                </div>
+
+                {/* 备用按钮 */}
+                <div className="mt-8 space-y-4">
+                  {cameraSupported && (
+                    <button
+                      onClick={handleFileUpload}
+                      className="w-full bg-blue-500 text-white py-3 px-6 rounded-full font-bold hover:bg-blue-600 transition-colors"
+                    >
+                      📁 ファイルから選択
+                    </button>
+                  )}
                 </div>
               </div>
             </div>
@@ -363,6 +427,16 @@ export default function Home() {
             </div>
           </div>
         )}
+
+        {/* 隐藏的文件输入 */}
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept="image/*"
+          capture="environment"
+          onChange={handleFileChange}
+          className="hidden"
+        />
 
         {/* 隐藏的canvas用于图片处理 */}
         <canvas ref={canvasRef} className="hidden" />
