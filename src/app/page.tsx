@@ -377,7 +377,10 @@ export default function Home() {
   // 主拍照按钮处理（强制启动相机）
   const handleMainCameraButton = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
-    console.log('User clicked main camera button - forcing camera start');
+    event.stopPropagation();
+    console.log('🔴 RED BUTTON CLICKED! - Starting camera...');
+    console.log('Event target:', event.target);
+    console.log('Event current target:', event.currentTarget);
     
     // 强制尝试启动相机，不依赖cameraSupported状态
     startCamera();
@@ -422,43 +425,39 @@ export default function Home() {
             {/* 主要拍照区域 */}
             <div className="flex items-center justify-center px-4 py-8 flex-1">
               <div className="text-center w-full">
-                {/* 卡通放大镜拍照按钮 */}
+                {/* 卡通放大镜拍照按钮 - 简化结构确保点击正常 */}
                 <div className="relative mx-auto w-72 h-72 mb-8">
                   <button 
                     onClick={handleMainCameraButton}
-                    className="block w-full h-full relative z-10"
+                    className="relative w-full h-full bg-gradient-to-br from-red-400 to-red-500 rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300 cursor-pointer animate-pulse hover:animate-none z-50"
                     type="button"
+                    style={{ zIndex: 1000 }}
                   >
-                    {/* 主圆形按钮 - 添加吸引人的动画 */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-red-400 to-red-500 rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300 cursor-pointer animate-pulse hover:animate-none pointer-events-none">
-                      {/* 外圈呼吸光环效果 */}
-                      <div className="absolute -inset-4 bg-gradient-to-br from-red-300 to-pink-300 rounded-full opacity-30 animate-ping pointer-events-none"></div>
-                      <div className="absolute -inset-2 bg-gradient-to-br from-red-400 to-pink-400 rounded-full opacity-50 animate-pulse pointer-events-none"></div>
-                      
-                      <div className="absolute inset-6 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center shadow-inner pointer-events-none">
-                        <span className="text-7xl font-black text-red-500 font-rounded select-none pointer-events-none" style={{fontFamily: '"Comic Sans MS", "Hiragino Maru Gothic Pro", "Yu Gothic UI", cursive, sans-serif'}}>押</span>
-                      </div>
-                      {/* 放大镜把手 */}
-                      <div className="absolute -bottom-10 -right-10 w-20 h-28 bg-gradient-to-b from-red-400 to-red-600 rounded-full transform rotate-45 shadow-lg pointer-events-none"></div>
+                    {/* 主要内容区域 */}
+                    <div className="absolute inset-6 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center shadow-inner">
+                      <span className="text-7xl font-black text-red-500 font-rounded select-none" style={{fontFamily: '"Comic Sans MS", "Hiragino Maru Gothic Pro", "Yu Gothic UI", cursive, sans-serif'}}>押</span>
                     </div>
                     
-                    {/* 装饰性动画元素 - 更有吸引力 */}
-                    <div className="absolute -top-6 -left-6 w-10 h-10 bg-yellow-400 rounded-full animate-bounce shadow-lg pointer-events-none">
-                      <div className="w-full h-full bg-yellow-300 rounded-full animate-ping opacity-75 pointer-events-none"></div>
-                    </div>
-                    <div className="absolute -top-4 -right-10 w-8 h-8 bg-blue-400 rounded-full animate-pulse shadow-lg pointer-events-none">
-                      <div className="w-full h-full bg-blue-300 rounded-full animate-bounce opacity-60 pointer-events-none"></div>
-                    </div>
-                    <div className="absolute -bottom-6 -left-10 w-12 h-12 bg-green-400 rounded-full animate-bounce delay-300 shadow-lg pointer-events-none">
-                      <div className="w-full h-full bg-green-300 rounded-full animate-ping delay-500 opacity-70 pointer-events-none"></div>
-                    </div>
-                    <div className="absolute top-1/4 -right-8 w-6 h-6 bg-purple-400 rounded-full animate-ping shadow-lg pointer-events-none">
-                      <div className="w-full h-full bg-purple-300 rounded-full animate-pulse delay-200 opacity-80 pointer-events-none"></div>
-                    </div>
-                    <div className="absolute bottom-1/4 -left-6 w-8 h-8 bg-orange-400 rounded-full animate-pulse delay-150 shadow-lg pointer-events-none">
-                      <div className="w-full h-full bg-orange-300 rounded-full animate-bounce delay-700 opacity-65 pointer-events-none"></div>
-                    </div>
+                    {/* 放大镜把手 */}
+                    <div className="absolute -bottom-10 -right-10 w-20 h-28 bg-gradient-to-b from-red-400 to-red-600 rounded-full transform rotate-45 shadow-lg"></div>
                   </button>
+                  
+                  {/* 装饰性动画元素 - 移到外层，不干扰点击 */}
+                  <div className="absolute -top-6 -left-6 w-10 h-10 bg-yellow-400 rounded-full animate-bounce shadow-lg pointer-events-none">
+                    <div className="w-full h-full bg-yellow-300 rounded-full animate-ping opacity-75"></div>
+                  </div>
+                  <div className="absolute -top-4 -right-10 w-8 h-8 bg-blue-400 rounded-full animate-pulse shadow-lg pointer-events-none">
+                    <div className="w-full h-full bg-blue-300 rounded-full animate-bounce opacity-60"></div>
+                  </div>
+                  <div className="absolute -bottom-6 -left-10 w-12 h-12 bg-green-400 rounded-full animate-bounce delay-300 shadow-lg pointer-events-none">
+                    <div className="w-full h-full bg-green-300 rounded-full animate-ping delay-500 opacity-70"></div>
+                  </div>
+                  <div className="absolute top-1/4 -right-8 w-6 h-6 bg-purple-400 rounded-full animate-ping shadow-lg pointer-events-none">
+                    <div className="w-full h-full bg-purple-300 rounded-full animate-pulse delay-200 opacity-80"></div>
+                  </div>
+                  <div className="absolute bottom-1/4 -left-6 w-8 h-8 bg-orange-400 rounded-full animate-pulse delay-150 shadow-lg pointer-events-none">
+                    <div className="w-full h-full bg-orange-300 rounded-full animate-bounce delay-700 opacity-65"></div>
+                  </div>
                 </div>
 
                 {/* 说明文字 */}
