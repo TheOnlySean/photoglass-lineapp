@@ -513,6 +513,10 @@ export default function Home() {
                     <span className="text-xl">🔊</span>
                     <span>音声での読み上げ機能</span>
                   </div>
+                  <div className="flex items-center space-x-3">
+                    <span className="text-xl">🌍</span>
+                    <span>画像内の各言語を翻訳対応</span>
+                  </div>
                   {isInLiffClient && (
                     <div className="flex items-center space-x-3 mt-4 pt-3 border-t border-gray-200">
                       <span className="text-xl">📱</span>
@@ -735,16 +739,39 @@ export default function Home() {
                     onClick={() => {
                       if (navigator.share) {
                         navigator.share({
-                          title: '写真眼鏡 - AI解析結果',
-                          text: recognizedText
+                          title: '🔍 写真眼鏡 - AI画像解読アプリ',
+                          text: `📸 写真を撮るだけで
+🤖 AIが内容を音声で読み上げ
+🌍 各言語の翻訳にも対応
+👴 高齢者にもやさしい設計
+
+見えにくい文字でお困りの方におすすめです！`,
+                          url: window.location.origin
                         });
+                      } else {
+                        // fallback for browsers that don't support Web Share API
+                        const shareText = `🔍 写真眼鏡 - AI画像解読アプリ
+
+📸 写真を撮るだけで
+🤖 AIが内容を音声で読み上げ  
+🌍 各言語の翻訳にも対応
+👴 高齢者にもやさしい設計
+
+見えにくい文字でお困りの方におすすめです！
+
+${window.location.origin}`;
+                        
+                        if (navigator.clipboard) {
+                          navigator.clipboard.writeText(shareText);
+                          alert('アプリの紹介文をコピーしました！');
+                        }
                       }
                     }}
                     className="flex-1 bg-gradient-to-r from-green-400 to-blue-400 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
                     type="button"
                   >
-                    <span className="text-2xl">📤</span>
-                    <span>シェア</span>
+                    <span className="text-2xl">👥</span>
+                    <span>友達に紹介</span>
                   </button>
                 )}
 
