@@ -14,6 +14,7 @@ export default function Home() {
   const [cameraSupported, setCameraSupported] = useState(false);
   const [isInLiffClient, setIsInLiffClient] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
+  const [autoSpeakEnabled, setAutoSpeakEnabled] = useState(true); // 默认开启自动朗读
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -188,7 +189,16 @@ export default function Home() {
       console.log(`AI analysis completed - Request ID: ${requestId}`, result);
       
       // 确保这是最新的请求结果
-      setRecognizedText(result.text || '内容を認識できませんでした');
+      const analyzedText = result.text || '内容を認識できませんでした';
+      setRecognizedText(analyzedText);
+      
+      // AI解析完成后，如果开启自动朗读且有有效内容，则自动开始朗读
+      if (autoSpeakEnabled && analyzedText && analyzedText !== '内容を認識できませんでした') {
+        // 延迟一下让用户看到结果，然后自动开始朗读
+        setTimeout(() => {
+          speakText(analyzedText);
+        }, 1000);
+      }
       
     } catch (err) {
       console.error(`AI analysis error - Request ID: ${requestId}:`, err);
@@ -201,8 +211,9 @@ export default function Home() {
   };
 
   // 高质量语音朗读 - 使用Google Cloud TTS
-  const speakText = async () => {
-    if (!recognizedText || recognizedText === '内容を認識できませんでした' || isSpeaking) return;
+  const speakText = async (textToSpeak?: string) => {
+    const textContent = textToSpeak || recognizedText;
+    if (!textContent || textContent === '内容を認識できませんでした' || isSpeaking) return;
     
     setIsSpeaking(true);
     
@@ -215,7 +226,7 @@ export default function Home() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          text: recognizedText
+          text: textContent
         }),
       });
 
@@ -247,7 +258,7 @@ export default function Home() {
           URL.revokeObjectURL(audioUrl);
           console.error('Audio playback failed');
           // 降级到浏览器TTS
-          fallbackToWebTTS();
+          fallbackToWebTTS(textContent);
         };
         
         await audioRef.current.play();
@@ -258,15 +269,16 @@ export default function Home() {
       console.error('Google TTS error:', err);
       setIsSpeaking(false);
       // 降级到浏览器TTS
-      fallbackToWebTTS();
+      fallbackToWebTTS(textContent);
     }
   };
 
   // 降级到浏览器TTS（备用方案）
-  const fallbackToWebTTS = () => {
+  const fallbackToWebTTS = (textToSpeak?: string) => {
+    const textContent = textToSpeak || recognizedText;
     console.log('Falling back to browser TTS...');
     if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(recognizedText);
+      const utterance = new SpeechSynthesisUtterance(textContent);
       utterance.lang = 'ja-JP';
       utterance.rate = 0.8;
       utterance.pitch = 1.1; // 稍微提高音调让声音更友好
@@ -290,6 +302,17 @@ export default function Home() {
       speechSynthesis.cancel();
     }
     setIsSpeaking(false);
+  };
+
+  // 切换自动朗读开关
+  const toggleAutoSpeak = () => {
+    const newState = !autoSpeakEnabled;
+    setAutoSpeakEnabled(newState);
+    
+    // 如果关闭自动朗读且当前正在播放，则停止播放
+    if (!newState && isSpeaking) {
+      stopSpeaking();
+    }
   };
 
   // 重新拍照 - 完全重置所有状态
@@ -521,9 +544,23 @@ export default function Home() {
           // 结果显示状态 - 重新设计适合高龄用户
           <div className="h-screen flex flex-col bg-gradient-to-br from-pink-50 to-purple-50">
             {/* 固定头部 */}
-            <div className="flex-shrink-0 text-center pt-6 pb-4 bg-white shadow-sm">
+            <div className="flex-shrink-0 text-center pt-6 pb-4 bg-white shadow-sm relative">
               <h2 className="text-2xl font-bold text-gray-800 mb-1">🔍 AI解析結果</h2>
               <p className="text-gray-600 text-lg">内容をわかりやすく説明します</p>
+              
+              {/* 圆形声音开关按钮 - 放在右上角 */}
+              <button
+                onClick={toggleAutoSpeak}
+                className={`absolute top-4 right-4 w-12 h-12 rounded-full flex items-center justify-center text-2xl font-bold shadow-lg transition-all duration-200 transform hover:scale-110 ${
+                  autoSpeakEnabled 
+                    ? 'bg-gradient-to-r from-green-400 to-blue-400 text-white' 
+                    : 'bg-gradient-to-r from-gray-400 to-gray-500 text-white'
+                } ${isSpeaking ? 'animate-pulse' : ''}`}
+                type="button"
+                title={autoSpeakEnabled ? '音声オン（クリックでオフ）' : '音声オフ（クリックでオン）'}
+              >
+                {autoSpeakEnabled ? (isSpeaking ? '🔊' : '🔊') : '🔇'}
+              </button>
             </div>
 
             {/* 可滚动的主内容区域 */}
@@ -619,23 +656,6 @@ export default function Home() {
             {/* 固定底部按钮区域 */}
             <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-4">
               <div className="flex space-x-3">
-                {/* 语音朗读按钮 */}
-                {recognizedText && !isAnalyzing && recognizedText !== '内容を認識できませんでした' && (
-                  <button
-                    onClick={isSpeaking ? stopSpeaking : speakText}
-                    disabled={false}
-                    className={`flex-1 py-4 rounded-2xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2 ${
-                      isSpeaking 
-                        ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white animate-pulse' 
-                        : 'bg-gradient-to-r from-orange-400 to-red-400 text-white'
-                    }`}
-                    type="button"
-                  >
-                    <span className="text-2xl">{isSpeaking ? '🔇' : '🔊'}</span>
-                    <span>{isSpeaking ? '停止' : '重聽'}</span>
-                  </button>
-                )}
-
                 {/* 分享按钮 */}
                 {recognizedText && !isAnalyzing && recognizedText !== '内容を認識できませんでした' && (
                   <button
