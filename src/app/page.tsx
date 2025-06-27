@@ -396,21 +396,35 @@ export default function Home() {
                     className="block w-full h-full"
                     type="button"
                   >
-                    {/* 主圆形按钮 */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-red-400 to-red-500 rounded-full shadow-2xl transform hover:scale-105 transition-transform duration-200 cursor-pointer">
-                      <div className="absolute inset-6 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center">
-                        <span className="text-7xl font-bold text-red-500">撮</span>
+                    {/* 主圆形按钮 - 添加吸引人的动画 */}
+                    <div className="absolute inset-0 bg-gradient-to-br from-red-400 to-red-500 rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300 cursor-pointer animate-pulse hover:animate-none">
+                      {/* 外圈呼吸光环效果 */}
+                      <div className="absolute -inset-4 bg-gradient-to-br from-red-300 to-pink-300 rounded-full opacity-30 animate-ping"></div>
+                      <div className="absolute -inset-2 bg-gradient-to-br from-red-400 to-pink-400 rounded-full opacity-50 animate-pulse"></div>
+                      
+                      <div className="absolute inset-6 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center shadow-inner">
+                        <span className="text-7xl font-black text-red-500 font-rounded select-none" style={{fontFamily: '"Comic Sans MS", "Hiragino Maru Gothic Pro", "Yu Gothic UI", cursive, sans-serif'}}>押</span>
                       </div>
                       {/* 放大镜把手 */}
                       <div className="absolute -bottom-10 -right-10 w-20 h-28 bg-gradient-to-b from-red-400 to-red-600 rounded-full transform rotate-45 shadow-lg"></div>
                     </div>
                     
-                    {/* 装饰性动画元素 */}
-                    <div className="absolute -top-6 -left-6 w-10 h-10 bg-yellow-400 rounded-full animate-bounce"></div>
-                    <div className="absolute -top-4 -right-10 w-8 h-8 bg-blue-400 rounded-full animate-pulse"></div>
-                    <div className="absolute -bottom-6 -left-10 w-12 h-12 bg-green-400 rounded-full animate-bounce delay-300"></div>
-                    <div className="absolute top-1/4 -right-8 w-6 h-6 bg-purple-400 rounded-full animate-ping"></div>
-                    <div className="absolute bottom-1/4 -left-6 w-8 h-8 bg-orange-400 rounded-full animate-pulse delay-150"></div>
+                    {/* 装饰性动画元素 - 更有吸引力 */}
+                    <div className="absolute -top-6 -left-6 w-10 h-10 bg-yellow-400 rounded-full animate-bounce shadow-lg">
+                      <div className="w-full h-full bg-yellow-300 rounded-full animate-ping opacity-75"></div>
+                    </div>
+                    <div className="absolute -top-4 -right-10 w-8 h-8 bg-blue-400 rounded-full animate-pulse shadow-lg">
+                      <div className="w-full h-full bg-blue-300 rounded-full animate-bounce opacity-60"></div>
+                    </div>
+                    <div className="absolute -bottom-6 -left-10 w-12 h-12 bg-green-400 rounded-full animate-bounce delay-300 shadow-lg">
+                      <div className="w-full h-full bg-green-300 rounded-full animate-ping delay-500 opacity-70"></div>
+                    </div>
+                    <div className="absolute top-1/4 -right-8 w-6 h-6 bg-purple-400 rounded-full animate-ping shadow-lg">
+                      <div className="w-full h-full bg-purple-300 rounded-full animate-pulse delay-200 opacity-80"></div>
+                    </div>
+                    <div className="absolute bottom-1/4 -left-6 w-8 h-8 bg-orange-400 rounded-full animate-pulse delay-150 shadow-lg">
+                      <div className="w-full h-full bg-orange-300 rounded-full animate-bounce delay-700 opacity-65"></div>
+                    </div>
                   </button>
                 </div>
 
@@ -656,6 +670,23 @@ export default function Home() {
             {/* 固定底部按钮区域 */}
             <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-4">
               <div className="flex space-x-3">
+                {/* 重聽按钮 - 手动重新朗读 */}
+                {recognizedText && !isAnalyzing && recognizedText !== '内容を認識できませんでした' && (
+                  <button
+                    onClick={() => speakText(recognizedText)}
+                    disabled={isSpeaking}
+                    className={`flex-1 py-4 rounded-2xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2 ${
+                      isSpeaking 
+                        ? 'bg-gradient-to-r from-gray-400 to-gray-500 text-white cursor-not-allowed' 
+                        : 'bg-gradient-to-r from-orange-400 to-red-400 text-white'
+                    }`}
+                    type="button"
+                  >
+                    <span className="text-2xl">🔊</span>
+                    <span>重聽</span>
+                  </button>
+                )}
+
                 {/* 分享按钮 */}
                 {recognizedText && !isAnalyzing && recognizedText !== '内容を認識できませんでした' && (
                   <button
