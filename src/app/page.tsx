@@ -58,34 +58,50 @@ export default function Home() {
   const startCamera = useCallback(async () => {
     try {
       setError('');
-      console.log('User triggered camera access...');
+      console.log('🎥 Starting camera access...');
+      console.log('Is in LIFF client:', isInLiffClient);
+      console.log('Navigator.mediaDevices available:', !!navigator.mediaDevices);
+      console.log('getUserMedia available:', !!navigator.mediaDevices?.getUserMedia);
       
       if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) {
         throw new Error('このブラウザはカメラ機能をサポートしていません');
       }
 
-      // 在LIFF环境中，需要更严格的权限处理
-      const constraints = {
+      // 在LIFF环境中，先尝试简单的约束
+      const constraints = isInLiffClient ? {
         video: {
-          facingMode: 'environment', // 后置摄像头
+          facingMode: 'environment'
+        },
+        audio: false
+      } : {
+        video: {
+          facingMode: 'environment',
           width: { ideal: 1280, max: 1920 },
           height: { ideal: 720, max: 1080 }
         },
-        audio: false // 明确禁用音频
+        audio: false
       };
 
-      console.log('Requesting camera permission...');
+      console.log('🎥 Requesting camera permission with constraints:', constraints);
       const stream = await navigator.mediaDevices.getUserMedia(constraints);
       
-      console.log('Camera stream obtained successfully');
+      console.log('🎥 Camera stream obtained successfully:', stream);
+      console.log('🎥 Video tracks:', stream.getVideoTracks());
       
       if (videoRef.current) {
+        console.log('🎥 Setting video source...');
         videoRef.current.srcObject = stream;
         streamRef.current = stream;
         setIsCapturing(true);
+        console.log('🎥 Camera setup complete!');
+      } else {
+        console.error('🎥 Video ref is null!');
       }
     } catch (err) {
-      console.error('Camera access error:', err);
+      console.error('🎥 Camera access error:', err);
+      console.error('🎥 Error name:', err instanceof Error ? err.name : 'unknown');
+      console.error('🎥 Error message:', err instanceof Error ? err.message : 'unknown');
+      
       let errorMsg = 'カメラへのアクセスに失敗しました。';
       
       if (err instanceof Error) {
@@ -97,12 +113,14 @@ export default function Home() {
           errorMsg = 'カメラが他のアプリケーションによって使用されています。';
         } else if (err.name === 'OverconstrainedError') {
           errorMsg = 'カメラの設定に問題があります。';
+        } else if (err.name === 'NotSupportedError') {
+          errorMsg = 'このブラウザまたは環境ではカメラがサポートされていません。';
         }
       }
       
       setError(errorMsg + ' 代わりにファイル選択をご利用ください。');
     }
-  }, []);
+  }, [isInLiffClient]);
 
   // 文件上传方式（备用方案）
   const handleFileUpload = useCallback(() => {
@@ -375,7 +393,7 @@ export default function Home() {
   };
 
   // 主拍照按钮处理（强制启动相机）
-  const handleMainCameraButton = useCallback((event: React.MouseEvent) => {
+  const handleMainCameraButton = (event: React.MouseEvent) => {
     event.preventDefault();
     event.stopPropagation();
     console.log('🔴 RED BUTTON CLICKED! - Starting camera...');
@@ -384,7 +402,7 @@ export default function Home() {
     
     // 强制尝试启动相机，不依赖cameraSupported状态
     startCamera();
-  }, [startCamera]);
+  };
 
   if (isLoading) {
     return (
