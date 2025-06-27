@@ -37,6 +37,10 @@ export default function Home() {
             navigator.mediaDevices && 
             typeof navigator.mediaDevices.getUserMedia === 'function') {
           setCameraSupported(true);
+          console.log('Camera is supported');
+        } else {
+          console.log('Camera is not supported');
+          setCameraSupported(false);
         }
       } catch (err) {
         console.error('LIFF initialization error:', err);
@@ -355,19 +359,14 @@ export default function Home() {
     }
   };
 
-  // 主拍照按钮处理（只用于相机拍照）
+  // 主拍照按钮处理（强制启动相机）
   const handleMainCameraButton = useCallback((event: React.MouseEvent) => {
     event.preventDefault();
-    console.log('User clicked main camera button - camera only');
+    console.log('User clicked main camera button - forcing camera start');
     
-    if (cameraSupported) {
-      console.log('Camera supported, starting camera');
-      startCamera();
-    } else {
-      console.log('Camera not supported, showing error');
-      setError('カメラ機能がサポートされていません。下の青いボタンからファイルを選択してください。');
-    }
-  }, [cameraSupported, startCamera]);
+    // 强制尝试启动相机，不依赖cameraSupported状态
+    startCamera();
+  }, [startCamera]);
 
   if (isLoading) {
     return (
@@ -448,16 +447,11 @@ export default function Home() {
                 </div>
 
                 {/* 说明文字 */}
-                <div className="space-y-4">
-                  <p className="text-xl font-bold text-gray-700 mb-3 animate-bounce">
+                <div className="space-y-6">
+                  <p className="text-3xl font-bold text-gray-700 mb-6 animate-bounce">
                     <span className="inline-block animate-pulse bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent">
                       📸 タップして撮影
                     </span>
-                  </p>
-                  <p className="text-gray-600 leading-relaxed text-lg">
-                    写真をアップロードする場合は<br/>
-                    下方の青いボタンをクリック<br/>
-                    <span className="text-2xl">⬇️</span>
                   </p>
                 </div>
 
