@@ -107,10 +107,25 @@ export default function Home() {
   // 文件上传方式（备用方案）
   const handleFileUpload = useCallback(() => {
     console.log('User clicked file upload button');
+    
+    // 在LIFF环境中，优化文件选择体验
+    if (isInLiffClient) {
+      console.log('Opening file selector in LIFF environment');
+      // 在LIFF中，直接使用文件输入，但设置为优先从相册选择
+      if (fileInputRef.current) {
+        // 确保文件输入配置正确
+        fileInputRef.current.accept = 'image/*';
+        fileInputRef.current.removeAttribute('capture'); // 移除capture属性，让用户可以选择相册
+        fileInputRef.current.click();
+      }
+      return;
+    }
+    
+    // 在外部浏览器中的备用方案
     if (fileInputRef.current) {
       fileInputRef.current.click();
     }
-  }, []);
+  }, [isInLiffClient]);
 
   // 处理文件选择
   const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
@@ -411,37 +426,37 @@ export default function Home() {
                 <div className="relative mx-auto w-72 h-72 mb-8">
                   <button 
                     onClick={handleMainCameraButton}
-                    className="block w-full h-full"
+                    className="block w-full h-full relative z-10"
                     type="button"
                   >
                     {/* 主圆形按钮 - 添加吸引人的动画 */}
-                    <div className="absolute inset-0 bg-gradient-to-br from-red-400 to-red-500 rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300 cursor-pointer animate-pulse hover:animate-none">
+                    <div className="absolute inset-0 bg-gradient-to-br from-red-400 to-red-500 rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300 cursor-pointer animate-pulse hover:animate-none pointer-events-none">
                       {/* 外圈呼吸光环效果 */}
-                      <div className="absolute -inset-4 bg-gradient-to-br from-red-300 to-pink-300 rounded-full opacity-30 animate-ping"></div>
-                      <div className="absolute -inset-2 bg-gradient-to-br from-red-400 to-pink-400 rounded-full opacity-50 animate-pulse"></div>
+                      <div className="absolute -inset-4 bg-gradient-to-br from-red-300 to-pink-300 rounded-full opacity-30 animate-ping pointer-events-none"></div>
+                      <div className="absolute -inset-2 bg-gradient-to-br from-red-400 to-pink-400 rounded-full opacity-50 animate-pulse pointer-events-none"></div>
                       
-                      <div className="absolute inset-6 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center shadow-inner">
-                        <span className="text-7xl font-black text-red-500 font-rounded select-none" style={{fontFamily: '"Comic Sans MS", "Hiragino Maru Gothic Pro", "Yu Gothic UI", cursive, sans-serif'}}>押</span>
+                      <div className="absolute inset-6 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center shadow-inner pointer-events-none">
+                        <span className="text-7xl font-black text-red-500 font-rounded select-none pointer-events-none" style={{fontFamily: '"Comic Sans MS", "Hiragino Maru Gothic Pro", "Yu Gothic UI", cursive, sans-serif'}}>押</span>
                       </div>
                       {/* 放大镜把手 */}
-                      <div className="absolute -bottom-10 -right-10 w-20 h-28 bg-gradient-to-b from-red-400 to-red-600 rounded-full transform rotate-45 shadow-lg"></div>
+                      <div className="absolute -bottom-10 -right-10 w-20 h-28 bg-gradient-to-b from-red-400 to-red-600 rounded-full transform rotate-45 shadow-lg pointer-events-none"></div>
                     </div>
                     
                     {/* 装饰性动画元素 - 更有吸引力 */}
-                    <div className="absolute -top-6 -left-6 w-10 h-10 bg-yellow-400 rounded-full animate-bounce shadow-lg">
-                      <div className="w-full h-full bg-yellow-300 rounded-full animate-ping opacity-75"></div>
+                    <div className="absolute -top-6 -left-6 w-10 h-10 bg-yellow-400 rounded-full animate-bounce shadow-lg pointer-events-none">
+                      <div className="w-full h-full bg-yellow-300 rounded-full animate-ping opacity-75 pointer-events-none"></div>
                     </div>
-                    <div className="absolute -top-4 -right-10 w-8 h-8 bg-blue-400 rounded-full animate-pulse shadow-lg">
-                      <div className="w-full h-full bg-blue-300 rounded-full animate-bounce opacity-60"></div>
+                    <div className="absolute -top-4 -right-10 w-8 h-8 bg-blue-400 rounded-full animate-pulse shadow-lg pointer-events-none">
+                      <div className="w-full h-full bg-blue-300 rounded-full animate-bounce opacity-60 pointer-events-none"></div>
                     </div>
-                    <div className="absolute -bottom-6 -left-10 w-12 h-12 bg-green-400 rounded-full animate-bounce delay-300 shadow-lg">
-                      <div className="w-full h-full bg-green-300 rounded-full animate-ping delay-500 opacity-70"></div>
+                    <div className="absolute -bottom-6 -left-10 w-12 h-12 bg-green-400 rounded-full animate-bounce delay-300 shadow-lg pointer-events-none">
+                      <div className="w-full h-full bg-green-300 rounded-full animate-ping delay-500 opacity-70 pointer-events-none"></div>
                     </div>
-                    <div className="absolute top-1/4 -right-8 w-6 h-6 bg-purple-400 rounded-full animate-ping shadow-lg">
-                      <div className="w-full h-full bg-purple-300 rounded-full animate-pulse delay-200 opacity-80"></div>
+                    <div className="absolute top-1/4 -right-8 w-6 h-6 bg-purple-400 rounded-full animate-ping shadow-lg pointer-events-none">
+                      <div className="w-full h-full bg-purple-300 rounded-full animate-pulse delay-200 opacity-80 pointer-events-none"></div>
                     </div>
-                    <div className="absolute bottom-1/4 -left-6 w-8 h-8 bg-orange-400 rounded-full animate-pulse delay-150 shadow-lg">
-                      <div className="w-full h-full bg-orange-300 rounded-full animate-bounce delay-700 opacity-65"></div>
+                    <div className="absolute bottom-1/4 -left-6 w-8 h-8 bg-orange-400 rounded-full animate-pulse delay-150 shadow-lg pointer-events-none">
+                      <div className="w-full h-full bg-orange-300 rounded-full animate-bounce delay-700 opacity-65 pointer-events-none"></div>
                     </div>
                   </button>
                 </div>
@@ -743,7 +758,6 @@ export default function Home() {
           ref={fileInputRef}
           type="file"
           accept="image/*"
-          capture="environment"
           onChange={handleFileChange}
           className="hidden"
         />
