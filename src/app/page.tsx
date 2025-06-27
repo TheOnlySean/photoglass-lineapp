@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react';
 import { initializeLiff, getUserProfile, shareMessage, closeLiff } from '@/lib/liff';
 import { Profile } from '@line/liff';
 import liff from '@line/liff';
+import Link from 'next/link';
 
 export default function Home() {
   const [profile, setProfile] = useState<Profile | null>(null);
@@ -272,6 +273,21 @@ export default function Home() {
 
         <div className="mt-8 text-center text-gray-600">
           <p className="text-sm">LIFF設定テストページ - Enhanced Debug Mode</p>
+          <div className="mt-4 space-x-4">
+            <Link 
+              href="/privacy" 
+              className="text-blue-500 hover:underline text-sm"
+            >
+              プライバシーポリシー
+            </Link>
+            <span className="text-gray-400">|</span>
+            <Link 
+              href="/terms" 
+              className="text-blue-500 hover:underline text-sm"
+            >
+              利用規約
+            </Link>
+          </div>
         </div>
       </div>
     </div>
