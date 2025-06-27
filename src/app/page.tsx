@@ -13,10 +13,12 @@ export default function Home() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [cameraSupported, setCameraSupported] = useState(false);
   const [isInLiffClient, setIsInLiffClient] = useState(false);
+  const [isSpeaking, setIsSpeaking] = useState(false);
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const audioRef = useRef<HTMLAudioElement>(null);
 
   useEffect(() => {
     const initializeApp = async () => {
@@ -198,16 +200,96 @@ export default function Home() {
     }
   };
 
-  // 音声读み上げ
-  const speakText = () => {
-    if (!recognizedText || recognizedText === '内容を認識できませんでした') return;
+  // 高质量语音朗读 - 使用Google Cloud TTS
+  const speakText = async () => {
+    if (!recognizedText || recognizedText === '内容を認識できませんでした' || isSpeaking) return;
     
+    setIsSpeaking(true);
+    
+    try {
+      console.log('Starting TTS with Google Cloud...');
+      
+      const response = await fetch('/api/google-tts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          text: recognizedText
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('音声合成に失敗しました');
+      }
+
+      const result = await response.json();
+      
+      // Google TTS返回base64编码的音频数据
+      const audioBytes = atob(result.audioContent);
+      const audioArray = new Uint8Array(audioBytes.length);
+      for (let i = 0; i < audioBytes.length; i++) {
+        audioArray[i] = audioBytes.charCodeAt(i);
+      }
+      
+      const audioBlob = new Blob([audioArray], { type: 'audio/mp3' });
+      const audioUrl = URL.createObjectURL(audioBlob);
+      
+      // 播放音频
+      if (audioRef.current) {
+        audioRef.current.src = audioUrl;
+        audioRef.current.onended = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+        };
+        audioRef.current.onerror = () => {
+          setIsSpeaking(false);
+          URL.revokeObjectURL(audioUrl);
+          console.error('Audio playback failed');
+          // 降级到浏览器TTS
+          fallbackToWebTTS();
+        };
+        
+        await audioRef.current.play();
+        console.log('Google TTS audio started playing');
+      }
+      
+    } catch (err) {
+      console.error('Google TTS error:', err);
+      setIsSpeaking(false);
+      // 降级到浏览器TTS
+      fallbackToWebTTS();
+    }
+  };
+
+  // 降级到浏览器TTS（备用方案）
+  const fallbackToWebTTS = () => {
+    console.log('Falling back to browser TTS...');
     if ('speechSynthesis' in window) {
       const utterance = new SpeechSynthesisUtterance(recognizedText);
       utterance.lang = 'ja-JP';
       utterance.rate = 0.8;
+      utterance.pitch = 1.1; // 稍微提高音调让声音更友好
+      utterance.volume = 0.9;
+      
+      utterance.onstart = () => setIsSpeaking(true);
+      utterance.onend = () => setIsSpeaking(false);
+      utterance.onerror = () => setIsSpeaking(false);
+      
       speechSynthesis.speak(utterance);
     }
+  };
+
+  // 停止语音播放
+  const stopSpeaking = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+    }
+    if ('speechSynthesis' in window) {
+      speechSynthesis.cancel();
+    }
+    setIsSpeaking(false);
   };
 
   // 重新拍照 - 完全重置所有状态
@@ -255,12 +337,12 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50 overflow-hidden">
-      <div className="max-w-md mx-auto h-screen flex flex-col">
+    <div className="min-h-screen bg-gradient-to-br from-pink-50 to-purple-50">
+      <div className="max-w-md mx-auto min-h-screen flex flex-col">
         
         {!isCapturing && !capturedImage && (
-          // 主页状态
-          <>
+          // 主页状态 - 修复滚动问题
+          <div className="flex-1">
             {/* 头部 */}
             <div className="text-center pt-12 pb-8">
               <h1 className="text-3xl font-bold text-gray-800 mb-2">写真眼鏡</h1>
@@ -282,7 +364,7 @@ export default function Home() {
             )}
 
             {/* 主要拍照区域 */}
-            <div className="flex-1 flex items-center justify-center px-4">
+            <div className="flex items-center justify-center px-4 py-8">
               <div className="text-center">
                 {/* 卡通放大镜拍照按钮 */}
                 <div className="relative mx-auto w-80 h-80 mb-12">
@@ -388,7 +470,7 @@ export default function Home() {
                 </Link>
               </div>
             </div>
-          </>
+          </div>
         )}
 
         {isCapturing && (
@@ -436,114 +518,125 @@ export default function Home() {
         )}
 
         {capturedImage && (
-          // 结果显示状态
-          <div className="flex-1 flex flex-col">
-            {/* 头部标题 */}
-            <div className="text-center pt-8 pb-4">
-              <h2 className="text-2xl font-bold text-gray-800">📸 撮影完了</h2>
-              <p className="text-gray-600 mt-2">写真を確認してください</p>
+          // 结果显示状态 - 重新设计适合高龄用户
+          <div className="h-screen flex flex-col bg-gradient-to-br from-pink-50 to-purple-50">
+            {/* 固定头部 */}
+            <div className="flex-shrink-0 text-center pt-6 pb-4 bg-white shadow-sm">
+              <h2 className="text-2xl font-bold text-gray-800 mb-1">🔍 AI解析結果</h2>
+              <p className="text-gray-600 text-lg">内容をわかりやすく説明します</p>
             </div>
 
-            {/* 拍摄的照片 */}
-            <div className="px-4 mb-6">
-              <div className="relative rounded-2xl overflow-hidden shadow-2xl bg-white p-2">
-                <img
-                  src={capturedImage}
-                  alt="撮影した写真"
-                  className="w-full h-80 object-cover rounded-xl"
-                />
-                <div className="absolute top-4 right-4 bg-green-500 text-white px-3 py-1 rounded-full text-sm font-bold shadow-lg">
-                  ✅ 撮影完了
+            {/* 可滚动的主内容区域 */}
+            <div className="flex-1 overflow-y-auto px-4 py-4">
+              {/* 拍摄的照片缩略图 */}
+              <div className="mb-6">
+                <div className="relative rounded-xl overflow-hidden shadow-lg bg-white p-2">
+                  <img
+                    src={capturedImage}
+                    alt="撮影した写真"
+                    className="w-full h-32 object-cover rounded-lg"
+                  />
+                  <div className="absolute top-3 right-3 bg-green-500 text-white px-2 py-1 rounded-full text-xs font-bold">
+                    ✅ 完了
+                  </div>
                 </div>
               </div>
-            </div>
 
-            {/* AI分析状态 */}
-            {isAnalyzing && (
-              <div className="px-4 mb-6">
-                <div className="bg-gradient-to-r from-blue-50 to-purple-50 border-2 border-blue-200 rounded-2xl p-8 text-center">
-                  <div className="relative">
-                    <div className="animate-spin w-16 h-16 border-4 border-blue-500 border-t-transparent rounded-full mx-auto mb-4"></div>
-                    <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-2xl">
-                      🤖
+              {/* AI分析状态 */}
+              {isAnalyzing && (
+                <div className="mb-6">
+                  <div className="bg-white rounded-2xl p-8 text-center shadow-lg border-2 border-blue-200">
+                    <div className="relative mb-6">
+                      <div className="animate-spin w-20 h-20 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
+                      <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 text-3xl">
+                        🤖
+                      </div>
+                    </div>
+                    <p className="text-blue-700 font-bold text-2xl mb-3">AI解析中</p>
+                    <p className="text-blue-600 text-lg">しばらくお待ちください...</p>
+                    <div className="mt-6 flex justify-center space-x-2">
+                      <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce"></div>
+                      <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce delay-100"></div>
+                      <div className="w-3 h-3 bg-blue-500 rounded-full animate-bounce delay-200"></div>
                     </div>
                   </div>
-                  <p className="text-blue-700 font-bold text-xl mb-2">AI解析中...</p>
-                  <p className="text-blue-600">内容を読み取っています</p>
-                  <div className="mt-4 flex justify-center space-x-1">
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce"></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-100"></div>
-                    <div className="w-2 h-2 bg-blue-500 rounded-full animate-bounce delay-200"></div>
+                </div>
+              )}
+
+              {/* AI解析结果 - 大字体显示 */}
+              {recognizedText && !isAnalyzing && (
+                <div className="mb-6">
+                  <div className="bg-white rounded-2xl shadow-lg border-2 border-green-200 overflow-hidden">
+                    {/* 结果标题 */}
+                    <div className="bg-gradient-to-r from-green-100 to-blue-100 px-6 py-4 border-b border-green-200">
+                      <h3 className="text-green-800 font-bold text-xl flex items-center justify-center">
+                        <span className="text-2xl mr-3">📝</span>
+                        解析結果
+                      </h3>
+                    </div>
+                    
+                    {/* 结果内容 - 特大字体适合高龄用户 */}
+                    <div className="p-6">
+                      <div className="bg-gray-50 rounded-xl p-6 border border-gray-200">
+                        <p className="text-gray-800 text-2xl leading-relaxed font-medium whitespace-pre-wrap tracking-wide">
+                          {recognizedText}
+                        </p>
+                      </div>
+                    </div>
                   </div>
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* 识别结果 */}
-            {recognizedText && !isAnalyzing && (
-              <div className="px-4 mb-6 flex-1 overflow-y-auto">
-                <div className="bg-gradient-to-br from-green-50 to-blue-50 border-2 border-green-200 rounded-2xl p-6">
-                  <h3 className="text-green-800 font-bold text-xl mb-4 flex items-center justify-center">
-                    <span className="text-2xl mr-2">🔍</span>
-                    AI解析結果
-                  </h3>
-                  <div className="bg-white rounded-xl p-4 border-2 border-green-200 mb-6 shadow-inner">
-                    <p className="text-gray-800 text-lg leading-relaxed whitespace-pre-wrap">
-                      {recognizedText}
-                    </p>
+              {/* 错误显示 */}
+              {error && (
+                <div className="mb-6">
+                  <div className="bg-white rounded-2xl shadow-lg border-2 border-red-200 p-6 text-center">
+                    <div className="text-5xl mb-4">❌</div>
+                    <p className="text-red-700 font-bold text-xl mb-3">エラーが発生しました</p>
+                    <p className="text-red-600 text-lg leading-relaxed">{error}</p>
                   </div>
-                  
-                  {recognizedText !== '内容を認識できませんでした' && (
-                    <button
-                      onClick={speakText}
-                      className="w-full bg-gradient-to-r from-green-500 to-blue-500 text-white py-4 rounded-xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-3"
-                      type="button"
-                    >
-                      <span className="text-2xl">🔊</span>
-                      <span>音声で読み上げ</span>
-                    </button>
-                  )}
                 </div>
-              </div>
-            )}
+              )}
 
-            {/* 错误显示 */}
-            {error && (
-              <div className="px-4 mb-6">
-                <div className="bg-gradient-to-r from-red-50 to-pink-50 border-2 border-red-200 rounded-2xl p-6 text-center">
-                  <div className="text-4xl mb-3">❌</div>
-                  <p className="text-red-700 font-bold text-lg mb-2">エラーが発生しました</p>
-                  <p className="text-red-600">{error}</p>
-                </div>
-              </div>
-            )}
-
-            {/* 底部操作按钮 */}
-            <div className="px-4 pb-8">
-              <div className="space-y-4">
-                {/* 如果还没有进行AI分析，显示AI解读按钮 */}
-                {!recognizedText && !isAnalyzing && !error && (
+              {/* 如果没有结果且不在分析中，显示AI解读按钮 */}
+              {!recognizedText && !isAnalyzing && !error && (
+                <div className="mb-6">
                   <button
                     onClick={() => analyzeImage(capturedImage)}
-                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-4 rounded-2xl font-bold text-xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-3"
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-6 rounded-2xl font-bold text-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-4"
                     type="button"
                   >
-                    <span className="text-2xl">🤖</span>
-                    <span>AI解読開始</span>
+                    <span className="text-3xl">🤖</span>
+                    <span>AI解読を開始</span>
+                  </button>
+                </div>
+              )}
+
+              {/* 额外的底部间距，确保内容不会被底部按钮遮挡 */}
+              <div className="h-32"></div>
+            </div>
+
+            {/* 固定底部按钮区域 */}
+            <div className="flex-shrink-0 bg-white border-t border-gray-200 px-4 py-4">
+              <div className="flex space-x-3">
+                {/* 语音朗读按钮 */}
+                {recognizedText && !isAnalyzing && recognizedText !== '内容を認識できませんでした' && (
+                  <button
+                    onClick={isSpeaking ? stopSpeaking : speakText}
+                    disabled={false}
+                    className={`flex-1 py-4 rounded-2xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2 ${
+                      isSpeaking 
+                        ? 'bg-gradient-to-r from-red-500 to-pink-500 text-white animate-pulse' 
+                        : 'bg-gradient-to-r from-orange-400 to-red-400 text-white'
+                    }`}
+                    type="button"
+                  >
+                    <span className="text-2xl">{isSpeaking ? '🔇' : '🔊'}</span>
+                    <span>{isSpeaking ? '停止' : '重聽'}</span>
                   </button>
                 )}
 
-                {/* 重拍按钮 */}
-                <button
-                  onClick={retakePhoto}
-                  className="w-full bg-gradient-to-r from-gray-500 to-gray-600 text-white py-4 rounded-2xl font-bold text-xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-3"
-                  type="button"
-                >
-                  <span className="text-2xl">📷</span>
-                  <span>もう一度撮影</span>
-                </button>
-
-                {/* 如果有结果，添加分享功能按钮 */}
+                {/* 分享按钮 */}
                 {recognizedText && !isAnalyzing && recognizedText !== '内容を認識できませんでした' && (
                   <button
                     onClick={() => {
@@ -554,13 +647,23 @@ export default function Home() {
                         });
                       }
                     }}
-                    className="w-full bg-gradient-to-r from-blue-500 to-cyan-500 text-white py-3 rounded-xl font-bold hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
+                    className="flex-1 bg-gradient-to-r from-green-400 to-blue-400 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
                     type="button"
                   >
-                    <span className="text-xl">📤</span>
-                    <span>結果を共有</span>
+                    <span className="text-2xl">📤</span>
+                    <span>分享</span>
                   </button>
                 )}
+
+                {/* 重拍按钮 */}
+                <button
+                  onClick={retakePhoto}
+                  className="flex-1 bg-gradient-to-r from-red-400 to-pink-400 text-white py-4 rounded-2xl font-bold text-lg shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
+                  type="button"
+                >
+                  <span className="text-2xl">📷</span>
+                  <span>重拍</span>
+                </button>
               </div>
             </div>
           </div>
@@ -574,6 +677,13 @@ export default function Home() {
           capture="environment"
           onChange={handleFileChange}
           className="hidden"
+        />
+
+        {/* 隐藏的audio元素用于TTS播放 */}
+        <audio
+          ref={audioRef}
+          className="hidden"
+          preload="none"
         />
 
         {/* 隐藏的canvas用于图片处理 */}
