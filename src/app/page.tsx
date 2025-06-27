@@ -425,39 +425,15 @@ export default function Home() {
             {/* 主要拍照区域 */}
             <div className="flex items-center justify-center px-4 py-8 flex-1">
               <div className="text-center w-full">
-                {/* 卡通放大镜拍照按钮 - 简化结构确保点击正常 */}
-                <div className="relative mx-auto w-72 h-72 mb-8">
+                {/* 简化的红色拍照按钮 - 临时调试版本 */}
+                <div className="mx-auto w-72 h-72 mb-8">
                   <button 
                     onClick={handleMainCameraButton}
-                    className="relative w-full h-full bg-gradient-to-br from-red-400 to-red-500 rounded-full shadow-2xl transform hover:scale-105 transition-all duration-300 cursor-pointer animate-pulse hover:animate-none z-50"
+                    className="w-full h-full bg-red-500 rounded-full text-white text-6xl font-bold shadow-lg hover:bg-red-600 transition-colors cursor-pointer"
                     type="button"
-                    style={{ zIndex: 1000 }}
                   >
-                    {/* 主要内容区域 */}
-                    <div className="absolute inset-6 bg-gradient-to-br from-pink-200 to-pink-300 rounded-full flex items-center justify-center shadow-inner">
-                      <span className="text-7xl font-black text-red-500 font-rounded select-none" style={{fontFamily: '"Comic Sans MS", "Hiragino Maru Gothic Pro", "Yu Gothic UI", cursive, sans-serif'}}>押</span>
-                    </div>
-                    
-                    {/* 放大镜把手 */}
-                    <div className="absolute -bottom-10 -right-10 w-20 h-28 bg-gradient-to-b from-red-400 to-red-600 rounded-full transform rotate-45 shadow-lg"></div>
+                    📸<br/>押
                   </button>
-                  
-                  {/* 装饰性动画元素 - 移到外层，不干扰点击 */}
-                  <div className="absolute -top-6 -left-6 w-10 h-10 bg-yellow-400 rounded-full animate-bounce shadow-lg pointer-events-none">
-                    <div className="w-full h-full bg-yellow-300 rounded-full animate-ping opacity-75"></div>
-                  </div>
-                  <div className="absolute -top-4 -right-10 w-8 h-8 bg-blue-400 rounded-full animate-pulse shadow-lg pointer-events-none">
-                    <div className="w-full h-full bg-blue-300 rounded-full animate-bounce opacity-60"></div>
-                  </div>
-                  <div className="absolute -bottom-6 -left-10 w-12 h-12 bg-green-400 rounded-full animate-bounce delay-300 shadow-lg pointer-events-none">
-                    <div className="w-full h-full bg-green-300 rounded-full animate-ping delay-500 opacity-70"></div>
-                  </div>
-                  <div className="absolute top-1/4 -right-8 w-6 h-6 bg-purple-400 rounded-full animate-ping shadow-lg pointer-events-none">
-                    <div className="w-full h-full bg-purple-300 rounded-full animate-pulse delay-200 opacity-80"></div>
-                  </div>
-                  <div className="absolute bottom-1/4 -left-6 w-8 h-8 bg-orange-400 rounded-full animate-pulse delay-150 shadow-lg pointer-events-none">
-                    <div className="w-full h-full bg-orange-300 rounded-full animate-bounce delay-700 opacity-65"></div>
-                  </div>
                 </div>
 
                 {/* 说明文字 */}
@@ -477,6 +453,21 @@ export default function Home() {
                     type="button"
                   >
                     📁 ファイルから選択
+                  </button>
+                </div>
+
+                {/* 调试用简单按钮 */}
+                <div className="mt-4">
+                  <button
+                    onClick={() => {
+                      console.log('🟢 SIMPLE TEST BUTTON CLICKED!');
+                      alert('测试按钮被点击了！');
+                      startCamera();
+                    }}
+                    className="w-full bg-green-500 text-white py-4 px-6 rounded-full font-bold hover:bg-green-600 transition-colors text-lg shadow-lg"
+                    type="button"
+                  >
+                    🟢 测试相机按钮
                   </button>
                 </div>
               </div>
