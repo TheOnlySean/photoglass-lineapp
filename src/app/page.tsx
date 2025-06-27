@@ -426,13 +426,15 @@ export default function Home() {
                       
                       {/* 放大镜造型 */}
                       <div className="relative z-10 flex flex-col items-center justify-center h-full">
-                        {/* 放大镜镜片 */}
+                        {/* 放大镜设计 */}
                         <div className="relative mb-4">
-                          <div className="w-24 h-24 border-8 border-white rounded-full flex items-center justify-center bg-white bg-opacity-20 backdrop-blur-sm">
-                            <span className="text-4xl">👁️</span>
+                          {/* 放大镜镜片 - 圆形边框 */}
+                          <div className="w-20 h-20 border-6 border-white rounded-full bg-white bg-opacity-10 backdrop-blur-sm flex items-center justify-center">
+                            {/* 放大镜内的加号或圆点 */}
+                            <div className="w-8 h-8 bg-white rounded-full opacity-80"></div>
                           </div>
                           {/* 放大镜手柄 */}
-                          <div className="absolute -bottom-6 -right-6 w-8 h-12 bg-white rounded-full transform rotate-45 shadow-lg"></div>
+                          <div className="absolute -bottom-4 -right-4 w-6 h-10 bg-white rounded-full transform rotate-45 shadow-lg"></div>
                         </div>
                         
                         {/* 主要文字 */}
@@ -467,35 +469,18 @@ export default function Home() {
 
                 {/* 说明文字 */}
                 <div className="space-y-6">
-                  <div className="relative">
-                    <p className="text-3xl font-bold text-gray-700 mb-6">
-                      <span className="inline-block animate-pulse bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent drop-shadow-sm">
-                        📸 タップして撮影
-                      </span>
-                    </p>
-                    
-                    {/* 闪烁的箭头指向按钮 */}
-                    <div className="absolute -top-16 left-1/2 transform -translate-x-1/2 animate-bounce">
-                      <div className="text-4xl animate-pulse">⬆️</div>
-                    </div>
-                  </div>
-                  
-                  {/* 环境提示 */}
-                  {isInLiffClient && (
-                    <div className="bg-gradient-to-r from-blue-50 to-purple-50 border border-blue-200 rounded-xl p-4 mx-4 shadow-lg">
-                      <p className="text-blue-700 text-lg font-medium flex items-center justify-center space-x-2">
-                        <span className="text-2xl animate-pulse">📱</span>
-                        <span>LINEアプリ内で最適化された撮影体験</span>
-                      </p>
-                    </div>
-                  )}
+                  <p className="text-3xl font-bold text-gray-700 mb-6 animate-bounce" style={{fontFamily: '"Comic Sans MS", "Hiragino Maru Gothic Pro", "Yu Gothic UI", cursive, sans-serif'}}>
+                    <span className="inline-block animate-pulse bg-gradient-to-r from-red-500 to-pink-500 bg-clip-text text-transparent drop-shadow-sm">
+                      📸 タップして撮影
+                    </span>
+                  </p>
                 </div>
 
                 {/* 文件上传按钮 */}
                 <div className="mt-8">
                   <button
                     onClick={handleFileUpload}
-                    className="w-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 text-white py-4 px-6 rounded-full font-bold hover:from-blue-600 hover:via-purple-600 hover:to-blue-700 transition-all duration-300 text-lg shadow-xl transform hover:scale-105 hover:shadow-2xl relative overflow-hidden group"
+                    className="w-full bg-gradient-to-r from-blue-500 via-purple-500 to-blue-600 text-white py-4 px-6 rounded-full font-bold hover:from-blue-600 hover:via-purple-600 hover:to-blue-700 transition-all duration-300 text-xl shadow-xl transform hover:scale-105 hover:shadow-2xl relative overflow-hidden group"
                     type="button"
                   >
                     {/* 按钮内的光效 */}
