@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>写真眼鏡 LINE Mini App - 技術文書</title>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@300;400;500;700&display=swap');
+        
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Noto Sans JP', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: white;
+        }
+        
+        .page {
+            width: 210mm;
+            min-height: 297mm;
+            margin: 0 auto;
+            padding: 20mm;
+            background: white;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+        }
+        
+        @media print {
+            .page {
+                width: 100%;
+                margin: 0;
+                box-shadow: none;
+                page-break-after: always;
+                padding: 15mm;
+            }
+            
+            body {
+                margin: 0;
+            }
+        }
+        
+        h1 {
+            color: #2c3e50;
+            text-align: center;
+            margin-bottom: 30px;
+            font-size: 28px;
+            border-bottom: 3px solid #3498db;
+            padding-bottom: 10px;
+        }
+        
+        h2 {
+            color: #34495e;
+            margin-bottom: 20px;
+            font-size: 22px;
+            text-align: center;
+        }
+        
+        .title-page {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            min-height: 250mm;
+        }
+        
+        .title-page h1 {
+            font-size: 36px;
+            margin-bottom: 20px;
+            color: #2c3e50;
+            border: none;
+        }
+        
+        .title-page .subtitle {
+            font-size: 18px;
+            color: #7f8c8d;
+            margin-bottom: 40px;
+        }
+        
+        .title-page .info {
+            background: #f8f9fa;
+            padding: 20px;
+            border-radius: 10px;
+            margin-top: 40px;
+        }
+        
+        .mermaid {
+            display: flex;
+            justify-content: center;
+            margin: 20px 0;
+        }
+        
+        .chart-container {
+            width: 100%;
+            overflow-x: auto;
+        }
+        
+        .description {
+            background: #f8f9fa;
+            padding: 15px;
+            border-left: 4px solid #3498db;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+<body>
+    <!-- タイトルページ -->
+    <div class="page title-page">
+        <h1>📱 写真眼鏡 LINE Mini App</h1>
+        <div class="subtitle">技術仕様書・フローチャート集</div>
+        
+        <div class="info">
+            <h3>📋 文書概要</h3>
+            <p><strong>アプリ名：</strong>写真眼鏡 (しゃしんめがね)</p>
+            <p><strong>プラットフォーム：</strong>LINE Mini App</p>
+            <p><strong>主要機能：</strong>画像認識・AI解析・音声読み上げ</p>
+            <p><strong>対象ユーザー：</strong>高齢者・視覚サポートが必要な方</p>
+            <br>
+            <h3>📊 収録図表</h3>
+            <ul style="text-align: left; display: inline-block;">
+                <li>アプリケーション処理フロー</li>
+                <li>技術アーキテクチャ構成</li>
+                <li>機能特性マインドマップ</li>
+            </ul>
+        </div>
+    </div>
+
+    <!-- 処理フロー図 -->
+    <div class="page">
+        <h2>🔄 アプリケーション処理フロー</h2>
+        <div class="description">
+            <strong>概要：</strong>ユーザーがアプリを起動してから、写真撮影、AI解析、音声読み上げまでの一連の処理フローを示しています。
+        </div>
+        
+        <div class="chart-container">
+            <div class="mermaid">
+flowchart TD
+    A["👤 ユーザーが写真眼鏡アプリを開く"] --> B["🏠 メインページ表示"]
+    
+    B --> C{"📸 撮影方法選択"}
+    
+    C -->|撮影ボタン| D["📱 カメラ起動"]
+    C -->|アルバム選択| E["📁 ファイル選択"]
+    
+    D --> F["📸 写真撮影"]
+    E --> F
+    
+    F --> G["🔍 画像プレビュー表示"]
+    G --> H{"🤖 AI解析実行"}
+    
+    H -->|AI解読開始| I["⏳ 解析中..."]
+    H -->|再撮影| B
+    
+    I --> J["🤖 AI画像解析<br/>内容認識処理"]
+    
+    J --> K{"📝 内容タイプ別処理"}
+    
+    K -->|文字・文書| L1["📄 文書内容要約"]
+    K -->|外国語| L2["🌍 日本語翻訳・説明"]
+    K -->|音楽・映画| L3["🎵 作品情報説明"]
+    K -->|書籍・絵画| L4["📚 作品詳細説明"]
+    K -->|その他| L5["🏞️ 一般的な説明"]
+    
+    L1 --> M["✅ AI解析結果表示"]
+    L2 --> M
+    L3 --> M
+    L4 --> M
+    L5 --> M
+    
+    M --> N{"🔊 音声読み上げ"}
+    
+    N -->|自動読み上げON| O["🎵 高品質音声再生"]
+    N -->|自動読み上げOFF| P["🔇 サイレント表示"]
+    
+    O --> Q["📱 結果画面"]
+    P --> Q
+    
+    Q --> R{"👆 次の操作"}
+    
+    R -->|重聽| S["🔊 音声再生"]
+    R -->|友達に紹介| T["👥 LINEシェア"]
+    R -->|再撮影| B
+    
+    S --> Q
+    T --> Q
+    
+    style A fill:#e1f5fe
+    style B fill:#f3e5f5
+    style F fill:#fff3e0
+    style M fill:#e8f5e8
+    style Q fill:#fff8e1
+    style T fill:#fce4ec
+            </div>
+        </div>
+    </div>
+
+    <!-- 技術アーキテクチャ図 -->
+    <div class="page">
+        <h2>🏗️ 技術アーキテクチャ構成</h2>
+        <div class="description">
+            <strong>概要：</strong>写真眼鏡アプリの技術スタック、使用しているフレームワーク、API、開発ツールの全体構成を示しています。
+        </div>
+        
+        <div class="chart-container">
+            <div class="mermaid">
+graph TB
+    subgraph "🌐 LINE プラットフォーム"
+        A["LINE SDK"]
+        B["LINE Mini App"]
+        C["LINE シェア機能"]
+    end
+    
+    subgraph "💻 フロントエンド"
+        D["モダンWebフレームワーク"]
+        E["スタイリング + アニメーション"]
+        F["レスポンシブデザイン (高齢者対応)"]
+        G["スマートカメラ呼び出しロジック"]
+    end
+    
+    subgraph "⚙️ バックエンド"
+        H["API Routes"]
+        I["画像解析API"]
+        J["音声合成API"]
+    end
+    
+    subgraph "🤖 AI サービス"
+        K["画像認識<br/>Vision API"]
+        L["音声合成<br/>Text-to-Speech"]
+        M["多言語翻訳識別"]
+    end
+    
+    subgraph "📱 デバイス API"
+        N["Camera API<br/>(getUserMedia)"]
+        O["File Input API<br/>(capture=environment)"]
+        P["Web Share API"]
+        Q["Clipboard API"]
+    end
+    
+    subgraph "🔧 開発ツール"
+        R["プログラミング言語"]
+        S["コード品質管理"]
+        T["バージョン管理"]
+        U["自動デプロイ"]
+    end
+    
+    A --> D
+    B --> A
+    C --> P
+    
+    D --> G
+    G --> N
+    G --> O
+    
+    D --> H
+    H --> I
+    H --> J
+    
+    I --> K
+    J --> L
+    K --> M
+    
+    F --> D
+    E --> D
+    
+    R --> D
+    S --> R
+    T --> U
+    U --> H
+    
+    style A fill:#00C300
+    style B fill:#00C300
+    style D fill:#61DAFB
+    style K fill:#FF6B6B
+    style L fill:#4285F4
+    style U fill:#000000,color:#FFFFFF
+            </div>
+        </div>
+    </div>
+
+    <!-- 機能特性マインドマップ -->
+    <div class="page">
+        <h2>🧠 機能特性マインドマップ</h2>
+        <div class="description">
+            <strong>概要：</strong>写真眼鏡アプリの主要機能と特徴を分類別に整理したマインドマップです。各機能の詳細な特徴と技術的な実装内容を示しています。
+        </div>
+        
+        <div class="chart-container">
+            <div class="mermaid">
+mindmap
+  root)写真眼鏡 LINE Mini App(
+    📸 スマート撮影機能
+      LIFF環境最適化
+        ファイル入力でカメラ呼び出し
+        環境自動検出
+        スマート降格メカニズム
+      外部ブラウザサポート
+        getUserMedia API
+        カメラプレビュー機能
+        撮影キャプチャ
+      アルバム選択
+        ファイル選択器
+        画像アップロード
+        多フォーマット対応
+    
+    🤖 AI画像解析
+      画像認識エンジン
+        高性能AIモデル
+        高速解析
+        正確な認識
+      多タイプコンテンツ認識
+        文字文書読み取り
+        アルバムカバー解析
+        映画ポスター認識
+        書籍カバー読み取り
+        絵画作品鑑賞
+        商品情報抽出
+      多言語サポート
+        自動言語検出
+        リアルタイム翻訳
+        日本語出力
+    
+    🔊 音声読み上げシステム
+      高品質音声合成
+        自然な音声
+        日本語最適化
+        クリアな発音
+      フォールバック機能
+        互換性保証
+        自動切り替え
+        音速調節
+      スマート再生制御
+        自動読み上げスイッチ
+        手動リプレイ
+        再生状態表示
+    
+    👴 高齢者対応デザイン
+      大文字表示
+        24px メインコンテンツ
+        明確で読みやすい
+        高コントラスト
+      操作フロー簡素化
+        ワンクリック撮影
+        直感的インターフェース
+        明確な指示
+      アクセシビリティ機能
+        音声フィードバック
+        視覚補助
+        エラーガイダンス
+    
+    📱 LINE統合
+      LIFF SDK統合
+        環境検出
+        権限管理
+        ネイティブ体験
+      シェア機能
+        アプリ推薦
+        友達紹介
+        バイラル拡散
+      LINEユーザー体験
+        追加ログイン不要
+        シームレス統合
+        即座に使用可能
+            </div>
+        </div>
+    </div>
+
+    <script>
+        mermaid.initialize({ 
+            startOnLoad: true,
+            theme: 'default',
+            flowchart: {
+                useMaxWidth: true,
+                htmlLabels: true
+            },
+            mindmap: {
+                useMaxWidth: true
+            },
+            graph: {
+                useMaxWidth: true
+            }
+        });
+    </script>
+</body>
+</html> 
