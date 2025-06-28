@@ -35,11 +35,11 @@ export async function POST(request: NextRequest) {
 
     // 画像サイズチェック（Base64文字列の長さで概算）
     const imageSizeEstimate = image.length * 0.75; // Base64 -> bytes概算
-    const maxSizeMB = 10; // 10MB制限
+    const maxSizeMB = 25; // 25MB制限（iPhone写真対応）
     if (imageSizeEstimate > maxSizeMB * 1024 * 1024) {
       console.log(`[${requestId}] Error: Image too large (${(imageSizeEstimate / 1024 / 1024).toFixed(2)}MB)`);
       return NextResponse.json(
-        { error: '画像サイズが大きすぎます。10MB以下の画像をご利用ください。', requestId },
+        { error: '画像サイズが大きすぎます。25MB以下の画像をご利用ください。', requestId },
         { status: 413 }
       );
     }

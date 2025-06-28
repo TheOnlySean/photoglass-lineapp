@@ -199,7 +199,7 @@ export default function Home() {
     
     // 画像サイズの事前チェック
     const imageSizeEstimate = imageDataUrl.length * 0.75; // Base64 -> bytes概算
-    const maxSizeMB = 10;
+    const maxSizeMB = 25; // 25MB制限（iPhone写真対応）
     if (imageSizeEstimate > maxSizeMB * 1024 * 1024) {
       const sizeMB = (imageSizeEstimate / 1024 / 1024).toFixed(2);
       console.log(`Image too large: ${sizeMB}MB`);
