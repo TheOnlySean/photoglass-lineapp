@@ -14,18 +14,33 @@ function getOpenAIClient() {
 }
 
 export async function POST(request: NextRequest) {
+  let body: any = {};
+  let requestId = 'unknown';
+  
   try {
-    const body = await request.json();
-    const { image, requestId, prompt } = body;
+    body = await request.json();
+    requestId = body.requestId || 'unknown';
+    const { image, prompt } = body;
 
     // 日志记录请求
     console.log(`[${requestId || 'unknown'}] Starting image analysis`);
 
     if (!image) {
-      console.log(`[${requestId || 'unknown'}] Error: No image data provided`);
+      console.log(`[${requestId}] Error: No image data provided`);
       return NextResponse.json(
         { error: '画像データが提供されていません' },
         { status: 400 }
+      );
+    }
+
+    // 画像サイズチェック（Base64文字列の長さで概算）
+    const imageSizeEstimate = image.length * 0.75; // Base64 -> bytes概算
+    const maxSizeMB = 10; // 10MB制限
+    if (imageSizeEstimate > maxSizeMB * 1024 * 1024) {
+      console.log(`[${requestId}] Error: Image too large (${(imageSizeEstimate / 1024 / 1024).toFixed(2)}MB)`);
+      return NextResponse.json(
+        { error: '画像サイズが大きすぎます。10MB以下の画像をご利用ください。', requestId },
+        { status: 413 }
       );
     }
 
@@ -117,8 +132,8 @@ export async function POST(request: NextRequest) {
       max_tokens: 500, // 增加以支持更详细的作品描述
       temperature: 0.1
     }, {
-      // タイムアウト設定
-      timeout: 25000 // 25秒タイムアウト
+      // タイムアウト設定を延長（複雑な画像対応）
+      timeout: 45000 // 45秒タイムアウト
     });
 
     const recognizedText = response.choices[0]?.message?.content || '内容を認識できませんでした';
@@ -134,7 +149,6 @@ export async function POST(request: NextRequest) {
     });
 
   } catch (error) {
-    const requestId = 'unknown'; // エラー時はunknownとして処理
     console.error(`[${requestId}] OpenAI API エラー:`, error);
     
     if (error instanceof Error) {

@@ -52,4 +52,4 @@ logs
 .npm/
 
 # redis
-dump.rdb 
+dump.rdb .env.production

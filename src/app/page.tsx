@@ -197,6 +197,17 @@ export default function Home() {
     const requestId = Date.now().toString();
     console.log(`Starting AI analysis - Request ID: ${requestId}`);
     
+    // 画像サイズの事前チェック
+    const imageSizeEstimate = imageDataUrl.length * 0.75; // Base64 -> bytes概算
+    const maxSizeMB = 10;
+    if (imageSizeEstimate > maxSizeMB * 1024 * 1024) {
+      const sizeMB = (imageSizeEstimate / 1024 / 1024).toFixed(2);
+      console.log(`Image too large: ${sizeMB}MB`);
+      setError(`画像サイズが大きすぎます（${sizeMB}MB）。より小さな画像をお試しください。`);
+      setIsAnalyzing(false);
+      return;
+    }
+    
     try {
       const response = await fetch('/api/analyze-image', {
         method: 'POST',
@@ -211,6 +222,16 @@ export default function Home() {
 
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
+        
+        // 特定のエラーに対してより詳細なメッセージを提供
+        if (response.status === 408) {
+          throw new Error('分析がタイムアウトしました。画像サイズを小さくして再試行してください。');
+        } else if (response.status === 413) {
+          throw new Error('画像サイズが大きすぎます。より小さな画像をお試しください。');
+        } else if (response.status === 429) {
+          throw new Error('一時的に利用が集中しています。少し待ってから再試行してください。');
+        }
+        
         throw new Error(errorData.error || 'AI分析に失敗しました');
       }
 
