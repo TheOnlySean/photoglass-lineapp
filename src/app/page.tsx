@@ -400,24 +400,24 @@ export default function Home() {
     if (navigator.share) {
       navigator.share({
         title: '🔍 写真眼鏡 - AI画像解読アプリ',
-        text: `📸 写真を撮るだけで
-🤖 AIが内容を音声で読み上げ
+        text: `📸 複雑で見えにくい文字も、すぐに読み解ける
+🎨 写真の内容をAIが詳しく解説
 🌍 各言語の翻訳にも対応
 👴 高齢者にもやさしい設計
 
-見えにくい文字でお困りの方におすすめです！`,
+小さな文字や芸術品の解説でお困りの方におすすめです！`,
         url: 'https://line.me/R/ti/p/@824unncx'
       });
     } else {
       // fallback for browsers that don't support Web Share API
       const shareText = `🔍 写真眼鏡 - AI画像解読アプリ
 
-📸 写真を撮るだけで
-🤖 AIが内容を音声で読み上げ  
+📸 複雑で見えにくい文字も、すぐに読み解ける
+🎨 写真の内容をAIが詳しく解説  
 🌍 各言語の翻訳にも対応
 👴 高齢者にもやさしい設計
 
-見えにくい文字でお困りの方におすすめです！
+小さな文字や芸術品の解説でお困りの方におすすめです！
 
 https://line.me/R/ti/p/@824unncx`;
       
@@ -452,14 +452,6 @@ https://line.me/R/ti/p/@824unncx`;
             {/* 头部 */}
             <div className="text-center pt-12 pb-8">
               <h1 className="text-4xl font-black text-gray-800 mb-4" style={{fontFamily: '"Comic Sans MS", "Hiragino Maru Gothic Pro", "Yu Gothic UI", cursive, sans-serif'}}>写真眼鏡</h1>
-              <button
-                onClick={shareLineAccount}
-                className="text-sm text-white mt-2 bg-gradient-to-r from-green-500 to-blue-500 px-4 py-2 rounded-full inline-flex items-center space-x-2 hover:from-green-600 hover:to-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
-                type="button"
-              >
-                <span className="text-lg">👥</span>
-                <span className="font-medium">友達に紹介</span>
-              </button>
             </div>
 
             {/* 错误提示 */}
@@ -554,6 +546,18 @@ https://line.me/R/ti/p/@824unncx`;
                       <span className="text-2xl">📁</span>
                       <span>アルバムから選択</span>
                     </div>
+                  </button>
+                </div>
+
+                {/* 分享按钮 */}
+                <div className="mt-4">
+                  <button
+                    onClick={shareLineAccount}
+                    className="w-full text-white bg-gradient-to-r from-green-500 to-blue-500 py-3 px-6 rounded-full font-bold hover:from-green-600 hover:to-blue-600 transition-all duration-200 text-lg shadow-lg hover:shadow-xl transform hover:scale-105 flex items-center justify-center space-x-3"
+                    type="button"
+                  >
+                    <span className="text-xl">👥</span>
+                    <span>友達に紹介</span>
                   </button>
                 </div>
               </div>
