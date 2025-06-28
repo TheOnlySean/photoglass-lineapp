@@ -1,9 +1,17 @@
 import { NextRequest, NextResponse } from 'next/server';
 import OpenAI from 'openai';
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+// 只在运行时初始化OpenAI客户端，避免构建时错误
+let openai: OpenAI | null = null;
+
+function getOpenAIClient() {
+  if (!openai && process.env.OPENAI_API_KEY) {
+    openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    });
+  }
+  return openai;
+}
 
 export async function POST(request: NextRequest) {
   try {
@@ -71,8 +79,18 @@ export async function POST(request: NextRequest) {
 
     console.log(`[${requestId || 'unknown'}] Calling OpenAI API`);
 
+    // OpenAI クライアントを取得
+    const client = getOpenAIClient();
+    if (!client) {
+      console.log(`[${requestId || 'unknown'}] Error: OpenAI client not available`);
+      return NextResponse.json(
+        { error: 'OpenAI API キーが設定されていません' },
+        { status: 500 }
+      );
+    }
+
     // OpenAI Vision API を呼び出し（最適化版）
-    const response = await openai.chat.completions.create({
+    const response = await client.chat.completions.create({
       model: "gpt-4o-mini", // 高速なminiモデル
       messages: [
         {

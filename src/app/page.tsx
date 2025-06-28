@@ -703,7 +703,8 @@ export default function Home() {
                 <div className="mb-6">
                   <button
                     onClick={() => analyzeImage(capturedImage)}
-                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-6 rounded-2xl font-bold text-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-4"
+                    disabled={isAnalyzing}
+                    className="w-full bg-gradient-to-r from-purple-500 to-pink-500 text-white py-6 rounded-2xl font-bold text-2xl shadow-xl hover:shadow-2xl transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-4 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
                     type="button"
                   >
                     <span className="text-3xl">🤖</span>

@@ -8,6 +8,15 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'Text is required' }, { status: 400 });
     }
 
+    // 检查必要的环境变量
+    if (!process.env.GOOGLE_CLIENT_EMAIL || !process.env.GOOGLE_PRIVATE_KEY || !process.env.GOOGLE_PROJECT_ID) {
+      console.error('Missing Google Cloud TTS environment variables');
+      return NextResponse.json(
+        { error: 'Google TTS service not configured' },
+        { status: 500 }
+      );
+    }
+
     // 构建Google Cloud TTS API请求
     const credential = {
       client_email: process.env.GOOGLE_CLIENT_EMAIL,
