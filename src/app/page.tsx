@@ -197,13 +197,18 @@ export default function Home() {
     const requestId = Date.now().toString();
     console.log(`Starting AI analysis - Request ID: ${requestId}`);
     
-    // 画像サイズの事前チェック
-    const imageSizeEstimate = imageDataUrl.length * 0.75; // Base64 -> bytes概算
+    // 画像サイズの正確なチェック
+    const commaIndex = imageDataUrl.indexOf(',');
+    const base64Data = imageDataUrl.substring(commaIndex + 1);
+    const actualBytes = (base64Data.length * 3) / 4; // Base64 -> bytes正確な計算
+    const actualMB = actualBytes / (1024 * 1024);
     const maxSizeMB = 25; // 25MB制限（iPhone写真対応）
-    if (imageSizeEstimate > maxSizeMB * 1024 * 1024) {
-      const sizeMB = (imageSizeEstimate / 1024 / 1024).toFixed(2);
-      console.log(`Image too large: ${sizeMB}MB`);
-      setError(`画像サイズが大きすぎます（${sizeMB}MB）。より小さな画像をお試しください。`);
+    
+    console.log(`Actual image size: ${actualMB.toFixed(2)}MB`);
+    
+    if (actualBytes > maxSizeMB * 1024 * 1024) {
+      console.log(`Image too large: ${actualMB.toFixed(2)}MB`);
+      setError(`画像サイズが大きすぎます（${actualMB.toFixed(2)}MB）。25MB以下の画像をご利用ください。`);
       setIsAnalyzing(false);
       return;
     }
@@ -227,7 +232,7 @@ export default function Home() {
         if (response.status === 408) {
           throw new Error('分析がタイムアウトしました。画像サイズを小さくして再試行してください。');
         } else if (response.status === 413) {
-          throw new Error('画像サイズが大きすぎます。より小さな画像をお試しください。');
+          throw new Error('画像サイズが大きすぎます。25MB以下の画像をご利用ください。');
         } else if (response.status === 429) {
           throw new Error('一時的に利用が集中しています。少し待ってから再試行してください。');
         }
