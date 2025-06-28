@@ -395,6 +395,42 @@ export default function Home() {
     }
   };
 
+  // 添加分享函数
+  const shareLineAccount = () => {
+    if (navigator.share) {
+      navigator.share({
+        title: '🔍 写真眼鏡 - AI画像解読アプリ',
+        text: `📸 写真を撮るだけで
+🤖 AIが内容を音声で読み上げ
+🌍 各言語の翻訳にも対応
+👴 高齢者にもやさしい設計
+
+見えにくい文字でお困りの方におすすめです！`,
+        url: 'https://line.me/R/ti/p/@824unncx'
+      });
+    } else {
+      // fallback for browsers that don't support Web Share API
+      const shareText = `🔍 写真眼鏡 - AI画像解読アプリ
+
+📸 写真を撮るだけで
+🤖 AIが内容を音声で読み上げ  
+🌍 各言語の翻訳にも対応
+👴 高齢者にもやさしい設計
+
+見えにくい文字でお困りの方におすすめです！
+
+https://line.me/R/ti/p/@824unncx`;
+      
+      if (navigator.clipboard) {
+        navigator.clipboard.writeText(shareText);
+        alert('LINE公式アカウントの紹介文をコピーしました！');
+      } else {
+        // 如果不支持clipboard，打开LINE链接
+        window.open('https://line.me/R/ti/p/@824unncx', '_blank');
+      }
+    }
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-pink-50 to-purple-50 overflow-hidden">
@@ -416,11 +452,14 @@ export default function Home() {
             {/* 头部 */}
             <div className="text-center pt-12 pb-8">
               <h1 className="text-4xl font-black text-gray-800 mb-4" style={{fontFamily: '"Comic Sans MS", "Hiragino Maru Gothic Pro", "Yu Gothic UI", cursive, sans-serif'}}>写真眼鏡</h1>
-              {isInLiffClient && (
-                <p className="text-sm text-blue-600 mt-2 bg-blue-50 px-3 py-1 rounded-full inline-block">
-                  📱 LINE環境で実行中
-                </p>
-              )}
+              <button
+                onClick={shareLineAccount}
+                className="text-sm text-white mt-2 bg-gradient-to-r from-green-500 to-blue-500 px-4 py-2 rounded-full inline-flex items-center space-x-2 hover:from-green-600 hover:to-blue-600 transition-all duration-200 shadow-lg hover:shadow-xl transform hover:scale-105"
+                type="button"
+              >
+                <span className="text-lg">👥</span>
+                <span className="font-medium">友達に紹介</span>
+              </button>
             </div>
 
             {/* 错误提示 */}
@@ -543,12 +582,6 @@ export default function Home() {
                     <span className="text-xl">🌍</span>
                     <span>画像内の各言語を翻訳対応</span>
                   </div>
-                  {isInLiffClient && (
-                    <div className="flex items-center space-x-3 mt-4 pt-3 border-t border-gray-200">
-                      <span className="text-xl">📱</span>
-                      <span className="text-blue-600 font-medium">LINE環境で最適化済み</span>
-                    </div>
-                  )}
                 </div>
               </div>
             </div>
@@ -590,7 +623,7 @@ export default function Home() {
                 <div className="absolute inset-4 border-4 border-white border-dashed rounded-xl opacity-50"></div>
                 
                 <div className="absolute top-4 left-1/2 transform -translate-x-1/2 bg-black bg-opacity-50 text-white px-4 py-2 rounded-full text-sm">
-                  📝 文字がはっきり見えるように撮影してください
+                  �� 文字がはっきり見えるように撮影してください
                 </div>
               </div>
             </div>
@@ -763,42 +796,12 @@ export default function Home() {
 
                 {recognizedText && !isAnalyzing && recognizedText !== '内容を認識できませんでした' && (
                   <button
-                    onClick={() => {
-                      if (navigator.share) {
-                        navigator.share({
-                          title: '🔍 写真眼鏡 - AI画像解読アプリ',
-                          text: `📸 写真を撮るだけで
-🤖 AIが内容を音声で読み上げ
-🌍 各言語の翻訳にも対応
-👴 高齢者にもやさしい設計
-
-見えにくい文字でお困りの方におすすめです！`,
-                          url: window.location.origin
-                        });
-                      } else {
-                        // fallback for browsers that don't support Web Share API
-                        const shareText = `🔍 写真眼鏡 - AI画像解読アプリ
-
-📸 写真を撮るだけで
-🤖 AIが内容を音声で読み上げ  
-🌍 各言語の翻訳にも対応
-👴 高齢者にもやさしい設計
-
-見えにくい文字でお困りの方におすすめです！
-
-${window.location.origin}`;
-                        
-                        if (navigator.clipboard) {
-                          navigator.clipboard.writeText(shareText);
-                          alert('アプリの紹介文をコピーしました！');
-                        }
-                      }
-                    }}
-                    className="flex-1 bg-gradient-to-r from-green-400 to-blue-400 text-white py-4 rounded-2xl font-bold text-lg hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-2"
+                    onClick={shareLineAccount}
+                    className="flex-1 bg-gradient-to-r from-green-400 to-blue-400 text-white py-4 rounded-2xl font-bold text-base hover:shadow-lg transform hover:scale-105 transition-all duration-200 flex items-center justify-center space-x-1"
                     type="button"
                   >
-                    <span className="text-2xl">👥</span>
-                    <span>友達に紹介</span>
+                    <span className="text-xl">👥</span>
+                    <span className="whitespace-nowrap">友達に紹介</span>
                   </button>
                 )}
 
