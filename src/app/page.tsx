@@ -129,19 +129,75 @@ export default function Home() {
     }
   }, []);
 
-  const handleCameraFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      console.log('📱 Camera file selected:', file.name, file.type);
+  // 图像压缩函数 - 统一处理所有上传的图片
+  const compressImage = useCallback((file: File): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new Image();
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      
+      if (!ctx) {
+        reject(new Error('Canvas context not available'));
+        return;
+      }
+
+      img.onload = () => {
+        // 计算合适的尺寸（最大宽度1920px，保持比例）
+        const maxWidth = 1920;
+        const maxHeight = 1080;
+        let { width, height } = img;
+        
+        if (width > maxWidth) {
+          height = (height * maxWidth) / width;
+          width = maxWidth;
+        }
+        
+        if (height > maxHeight) {
+          width = (width * maxHeight) / height;
+          height = maxHeight;
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+        
+        // 绘制并压缩图像
+        ctx.drawImage(img, 0, 0, width, height);
+        const compressedDataUrl = canvas.toDataURL('image/jpeg', 0.8);
+        
+        console.log(`📸 Image compressed: ${width}x${height}`);
+        resolve(compressedDataUrl);
+      };
+
+      img.onerror = () => {
+        reject(new Error('Failed to load image'));
+      };
+
+      // 创建图像URL
       const reader = new FileReader();
       reader.onload = (e) => {
-        const imageDataUrl = e.target?.result as string;
-        setCapturedImage(imageDataUrl);
-        console.log('📱 Image loaded successfully');
+        img.src = e.target?.result as string;
+      };
+      reader.onerror = () => {
+        reject(new Error('Failed to read file'));
       };
       reader.readAsDataURL(file);
-    }
+    });
   }, []);
+
+  const handleCameraFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      console.log('📱 Camera file selected:', file.name, file.type, `${(file.size / 1024 / 1024).toFixed(2)}MB`);
+      try {
+        const compressedImageDataUrl = await compressImage(file);
+        setCapturedImage(compressedImageDataUrl);
+        console.log('📱 Image compressed and loaded successfully');
+      } catch (error) {
+        console.error('📱 Image compression failed:', error);
+        setError('画像の処理に失敗しました。別の画像をお試しください。');
+      }
+    }
+  }, [compressImage]);
 
   const handleFileUpload = useCallback(() => {
     console.log('📁 User chose file upload from gallery');
@@ -150,18 +206,20 @@ export default function Home() {
     }
   }, []);
 
-  const handleFileChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileChange = useCallback(async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file && file.type.startsWith('image/')) {
-      console.log('📁 Gallery file selected:', file.name, file.type);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const imageDataUrl = e.target?.result as string;
-        setCapturedImage(imageDataUrl);
-      };
-      reader.readAsDataURL(file);
+      console.log('📁 Gallery file selected:', file.name, file.type, `${(file.size / 1024 / 1024).toFixed(2)}MB`);
+      try {
+        const compressedImageDataUrl = await compressImage(file);
+        setCapturedImage(compressedImageDataUrl);
+        console.log('📁 Image compressed and loaded successfully');
+      } catch (error) {
+        console.error('📁 Image compression failed:', error);
+        setError('画像の処理に失敗しました。別の画像をお試しください。');
+      }
     }
-  }, []);
+  }, [compressImage]);
 
   const stopCamera = useCallback(() => {
     if (streamRef.current) {
